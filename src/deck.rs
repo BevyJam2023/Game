@@ -131,6 +131,7 @@ pub fn draw_card(
     let (action_state, deck_transform, mut deck, children) = query.single_mut();
 
     if action_state.just_pressed(DeckAction::Draw) {
+        println!("pp");
         let (entity, mut hand) = hand.single_mut();
         for &child in children.iter() {
             if let Ok((card, mut ordinal, mut card_transform)) = q_cards.get_mut(child) {

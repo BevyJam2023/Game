@@ -26,7 +26,7 @@ pub enum AppState {
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<AppState>()
-            .add_plugin(CameraPlugin)
+            .add_plugins(CameraPlugin)
             .add_plugins((DeckPlugin, HandPlugin, CardPlugin))
             .add_plugins(LoadingPlugin);
     }
