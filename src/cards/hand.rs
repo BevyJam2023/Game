@@ -11,10 +11,13 @@ use leafwing_input_manager::{
     Actionlike, InputManagerBundle,
 };
 
+use super::{
+    card::{Card, FlipCard, Flipping, Ordinal},
+    deck::draw_card,
+    CardAction,
+};
 use crate::{
     camera::{lerp, CardCamera},
-    card::{Card, FlipCard, Flipping, Ordinal},
-    deck::{draw_card, DeckAction},
     utils::{calculate_rotated_bounds, point_in_polygon},
     AppState,
 };
@@ -26,11 +29,6 @@ pub struct Hand {
     pub hovered: Option<Entity>,
 }
 
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-pub enum HandAction {
-    Select,
-    Flip,
-}
 #[derive(Debug, Copy, Clone, PartialEq)]
 pub struct TransformLens {
     /// Start value.
@@ -56,8 +54,7 @@ pub struct HandPlugin;
 
 impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
-        app.add_plugins(InputManagerPlugin::<HandAction>::default())
-            .add_systems(OnEnter(AppState::Playing), spawn_hand)
+        app.add_systems(OnEnter(AppState::Playing), spawn_hand)
             .add_systems(Update, component_animator_system::<Transform>)
             .add_systems(
                 Update,
@@ -71,11 +68,11 @@ impl Plugin for HandPlugin {
 fn spawn_hand(mut commands: Commands) {
     commands
         .spawn((
-            InputManagerBundle::<HandAction> {
+            InputManagerBundle::<CardAction> {
                 action_state: ActionState::default(),
                 input_map: InputMap::new([
-                    (MouseButton::Left, HandAction::Select),
-                    (MouseButton::Right, HandAction::Flip),
+                    (MouseButton::Left, CardAction::Select),
+                    (MouseButton::Right, CardAction::Flip),
                 ]),
             },
             SpatialBundle::default(),
@@ -155,7 +152,7 @@ fn pickable_lerp(
 
 fn select_card(
     mut cmd: Commands,
-    mut query: Query<(&ActionState<HandAction>, &mut Hand, &mut Children)>,
+    mut query: Query<(&ActionState<CardAction>, &mut Hand, &mut Children)>,
     mut q_window: Query<&Window, With<PrimaryWindow>>,
     mut q_cards: Query<(Entity, &Card, &Transform, &Ordinal)>,
     mut q_camera: Query<(&Camera, &GlobalTransform), With<CardCamera>>,
@@ -227,12 +224,12 @@ fn select_card(
                 }
             }
         }
-        if action_state.just_pressed(HandAction::Flip) && hand.hovered.is_some() {
+        if action_state.just_pressed(CardAction::Flip) && hand.hovered.is_some() {
             flip_writer.send(FlipCard {
                 card: hand.hovered.unwrap(),
             });
         }
-        if action_state.just_pressed(HandAction::Select) && hand.hovered.is_some() {
+        if action_state.just_pressed(CardAction::Select) && hand.hovered.is_some() {
             hand.selected = hand.hovered;
 
             if let Ok((entity, card, transform, ord)) = q_cards.get(hand.selected.unwrap()) {
@@ -255,7 +252,7 @@ fn select_card(
         }
     }
 
-    let select_released = action_state.just_released(HandAction::Select);
+    let select_released = action_state.just_released(CardAction::Select);
     if select_released {
         hand.selected = None;
     }

@@ -1,15 +1,10 @@
 mod camera;
-mod card;
-mod deck;
-mod hand;
+mod cards;
 mod loading;
 mod utils;
 use bevy::prelude::*;
 use camera::CameraPlugin;
-use card::CardPlugin;
-use deck::{DeckAction, DeckPlugin};
-use hand::HandPlugin;
-use leafwing_input_manager::prelude::*;
+use cards::CardsPlugin;
 use loading::LoadingPlugin;
 
 pub struct GamePlugin;
@@ -27,7 +22,7 @@ impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<AppState>()
             .add_plugins(CameraPlugin)
-            .add_plugins((DeckPlugin, HandPlugin, CardPlugin))
+            .add_plugins(CardsPlugin)
             .add_plugins(LoadingPlugin);
     }
 }
