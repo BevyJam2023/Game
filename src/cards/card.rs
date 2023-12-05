@@ -1,6 +1,7 @@
 use bevy::prelude::*;
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
+use super::CardAction;
 use crate::{loading::TextureAssets, AppState};
 
 #[derive(Component)]
@@ -8,10 +9,6 @@ pub struct Card {
     pub front: Entity,
     pub back: Entity,
     pub face_up: bool,
-}
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-pub enum CardAction {
-    Flip,
 }
 #[derive(Event)]
 pub struct FlipCard {
@@ -43,7 +40,6 @@ pub struct CardPlugin;
 impl Plugin for CardPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Update, flip_card.run_if(in_state(AppState::Playing)))
-            .add_plugins(InputManagerPlugin::<CardAction>::default())
             .add_event::<FlipCard>();
     }
 }
@@ -56,7 +52,7 @@ pub fn flip_card(
     mut cmd: Commands,
     time: Res<Time>,
 ) {
-    for e in flip_event.iter() {
+    for e in flip_event.read() {
         if let Ok((entity, mut card)) = q_cards.get_mut(e.card) {
             card.face_up = !card.face_up;
             cmd.entity(entity).insert(Flipping {

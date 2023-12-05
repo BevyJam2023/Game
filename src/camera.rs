@@ -28,7 +28,7 @@ fn setup(mut cmd: Commands) {
         Camera2dBundle {
             camera_2d: Camera2d {
                 // no "background color", we need to see the main camera's output
-                clear_color: ClearColorConfig::None,
+                // clear_color: ClearColorConfig::None,
                 ..default()
             },
             camera: Camera {
@@ -40,18 +40,6 @@ fn setup(mut cmd: Commands) {
         CardCamera,
         RenderLayers::layer(0),
     ));
-    cmd.spawn((
-        Camera2dBundle {
-            camera: Camera {
-                order: 0,
-                ..default()
-            },
-            ..default()
-        },
-        BoardCamera,
-        RenderLayers::layer(1),
-    ))
-    .insert(PanCam::default());
 }
 
 pub fn lerp(x: f32, y: f32, by: f32) -> f32 {

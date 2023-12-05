@@ -6,21 +6,19 @@ use leafwing_input_manager::{
     Actionlike, InputManagerBundle,
 };
 
-use crate::{
+use super::{
     card::{Card, CardBundle, CardFace, FlipCard, Ordinal},
     hand::Hand,
-    loading::TextureAssets,
-    AppState,
+    CardAction,
 };
-
-// This is the list of "things in the game I want to be able to do based on input"
-#[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-pub enum DeckAction {
-    Draw,
-}
+use crate::{loading::TextureAssets, AppState};
 
 #[derive(Component)]
 pub struct Deck {
+    size: usize,
+}
+#[derive(Component)]
+pub struct Discard {
     size: usize,
 }
 
@@ -28,22 +26,33 @@ pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(OnEnter(AppState::Playing), spawn_deck)
+        app.add_systems(OnEnter(AppState::Playing), (spawn_deck, spawn_discard))
             .add_systems(
                 Update,
                 (position_cards, draw_card).run_if(in_state(AppState::Playing)),
-            )
-            .add_plugins(InputManagerPlugin::<DeckAction>::default());
+            );
     }
+}
+fn spawn_discard(mut cmd: Commands) {
+    cmd.spawn((
+        Discard { size: 0 },
+        SpatialBundle {
+            transform: Transform {
+                translation: Vec3::new(-400., -150., 0.),
+                ..default()
+            },
+            ..default()
+        },
+    ));
 }
 
 //spawn deck when deck plugin is made
 fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
     let deck_id = cmd
         .spawn((
-            InputManagerBundle::<DeckAction> {
+            InputManagerBundle::<CardAction> {
                 action_state: ActionState::default(),
-                input_map: InputMap::new([(KeyCode::Space, DeckAction::Draw)]),
+                input_map: InputMap::new([(KeyCode::Space, CardAction::Draw)]),
             },
             Deck { size: 60 },
             SpatialBundle {
@@ -117,7 +126,7 @@ pub fn draw_card(
     mut cmd: Commands,
     mut query: Query<
         (
-            &ActionState<DeckAction>,
+            &ActionState<CardAction>,
             &Transform,
             &mut Deck,
             &mut Children,
@@ -130,8 +139,7 @@ pub fn draw_card(
 ) {
     let (action_state, deck_transform, mut deck, children) = query.single_mut();
 
-    if action_state.just_pressed(DeckAction::Draw) {
-        println!("pp");
+    if action_state.just_pressed(CardAction::Draw) {
         let (entity, mut hand) = hand.single_mut();
         for &child in children.iter() {
             if let Ok((card, mut ordinal, mut card_transform)) = q_cards.get_mut(child) {
