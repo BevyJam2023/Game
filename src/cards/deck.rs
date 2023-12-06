@@ -31,7 +31,8 @@ impl Plugin for DeckPlugin {
             .add_event::<ShuffleDiscard>()
             .add_systems(
                 Update,
-                (position_cards, draw_card).run_if(in_state(AppState::Playing)),
+                (position_cards, draw_card, discard_into_library)
+                    .run_if(in_state(AppState::Playing)),
             );
     }
 }
@@ -161,9 +162,9 @@ pub struct ShuffleDiscard;
 
 pub fn discard_into_library(
     mut cmd: Commands,
-    mut q_library: Query<(Entity, &Transform, &mut Deck), With<Library>>,
-    mut q_discard: Query<(&Transform, &mut Deck, &mut Children), With<Discard>>,
-    mut q_cards: Query<(&Card, &mut Transform)>,
+    mut q_library: Query<(Entity, &Transform, &mut Deck), (With<Library>, Without<Discard>)>,
+    mut q_discard: Query<(&Transform, &mut Deck, &mut Children), (With<Discard>, Without<Card>)>,
+    mut q_cards: Query<(&Card, &mut Transform), Without<Library>>,
     mut event: EventReader<ShuffleDiscard>,
     mut flip_writer: EventWriter<FlipCard>,
 ) {
@@ -181,7 +182,6 @@ pub fn discard_into_library(
                 card_t.translation.y += discard_t.translation.y - library_t.translation.y;
                 cmd.entity(library_e).push_children(&[child]);
                 flip_writer.send(FlipCard { card: child });
-                return;
             }
         }
     }
