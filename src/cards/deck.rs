@@ -1,13 +1,14 @@
 use std::f32::consts::PI;
 
 use bevy::prelude::*;
+use bevy_tweening::Lerp;
 use leafwing_input_manager::{
     prelude::{ActionState, InputManagerPlugin, InputMap},
     Actionlike, InputManagerBundle,
 };
 
 use super::{
-    card::{Card, CardBundle, CardFace, FlipCard, Ordinal},
+    card::{Card, CardBundle, CardFace, FlipCard},
     hand::Hand,
     CardAction,
 };
@@ -15,18 +16,19 @@ use crate::{loading::TextureAssets, AppState};
 
 #[derive(Component)]
 pub struct Deck {
-    size: usize,
+    pub size: usize,
 }
 #[derive(Component)]
-pub struct Discard {
-    size: usize,
-}
+pub struct Discard;
+#[derive(Component)]
+pub struct Library;
 
 pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Playing), (spawn_deck, spawn_discard))
+            .add_event::<ShuffleDiscard>()
             .add_systems(
                 Update,
                 (position_cards, draw_card).run_if(in_state(AppState::Playing)),
@@ -35,10 +37,11 @@ impl Plugin for DeckPlugin {
 }
 fn spawn_discard(mut cmd: Commands) {
     cmd.spawn((
-        Discard { size: 0 },
+        Discard,
+        Deck { size: 60 },
         SpatialBundle {
             transform: Transform {
-                translation: Vec3::new(-400., -150., 0.),
+                translation: Vec3::new(100., -300., 0.),
                 ..default()
             },
             ..default()
@@ -50,14 +53,11 @@ fn spawn_discard(mut cmd: Commands) {
 fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
     let deck_id = cmd
         .spawn((
-            InputManagerBundle::<CardAction> {
-                action_state: ActionState::default(),
-                input_map: InputMap::new([(KeyCode::Space, CardAction::Draw)]),
-            },
+            Library,
             Deck { size: 60 },
             SpatialBundle {
                 transform: Transform {
-                    translation: Vec3::new(-400., -150., 0.),
+                    translation: Vec3::new(-400., -300., 0.),
                     ..default()
                 },
                 ..default()
@@ -100,7 +100,6 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
                     face_up: false,
                 },
                 sprite: SpriteBundle { ..default() },
-                ordinal: Ordinal(i),
             })
             .id();
 
@@ -110,53 +109,78 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
 }
 fn position_cards(
     q_deck: Query<(&Transform, &Deck, &Children)>,
-    mut q_cards: Query<(&Ordinal, &Card, &mut Transform), Without<Deck>>,
+    mut q_cards: Query<(&Card, &mut Transform), Without<Deck>>,
 ) {
-    let (deck_t, deck, children) = q_deck.single();
+    for (deck_t, deck, children) in q_deck.iter() {
+        for (i, &child) in children.iter().enumerate() {
+            if let Ok((card, mut transform)) = q_cards.get_mut(child) {
+                transform.translation.x = transform.translation.x.lerp(&0., &0.2);
+                transform.translation.y = transform.translation.y.lerp(&(i as f32 * 0.5), &0.2);
 
-    for &child in children.iter() {
-        if let Ok((ord, card, mut transform)) = q_cards.get_mut(child) {
-            transform.translation.y = ord.0 as f32 * 0.5;
-            transform.translation.z = ord.0 as f32;
+                transform.translation.z = i as f32;
+            }
         }
     }
 }
 
 pub fn draw_card(
     mut cmd: Commands,
-    mut query: Query<
-        (
-            &ActionState<CardAction>,
-            &Transform,
-            &mut Deck,
-            &mut Children,
-        ),
-        Without<Card>,
-    >,
-    mut q_cards: Query<(&Card, &mut Ordinal, &mut Transform)>,
+    actions: Query<&ActionState<CardAction>>,
+    mut query: Query<(&Transform, &mut Deck, &mut Children), (With<Library>, Without<Card>)>,
+    mut q_cards: Query<(&Card, &mut Transform)>,
     mut hand: Query<(Entity, &mut Hand)>,
     mut flip_writer: EventWriter<FlipCard>,
+    mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
 ) {
-    let (action_state, deck_transform, mut deck, children) = query.single_mut();
+    if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
+        let action_state = actions.single();
+        if action_state.just_pressed(CardAction::Draw) {
+            let (entity, mut hand) = hand.single_mut();
+            for &child in children.iter() {
+                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                    cmd.entity(child).remove_parent();
 
-    if action_state.just_pressed(CardAction::Draw) {
-        let (entity, mut hand) = hand.single_mut();
-        for &child in children.iter() {
-            if let Ok((card, mut ordinal, mut card_transform)) = q_cards.get_mut(child) {
-                if ordinal.0 != deck.size - 1 {
-                    continue;
+                    card_transform.translation.x += deck_transform.translation.x;
+                    card_transform.translation.y += deck_transform.translation.y;
+
+                    deck.size -= 1;
+                    cmd.entity(entity).push_children(&[child]);
+                    hand.size += 1;
+                    flip_writer.send(FlipCard { card: child });
+
+                    return;
                 }
+            }
+        }
+    } else {
+        shuffle_discard_writer.send(ShuffleDiscard);
+    }
+}
+#[derive(Event)]
+pub struct ShuffleDiscard;
+
+pub fn discard_into_library(
+    mut cmd: Commands,
+    mut q_library: Query<(Entity, &Transform, &mut Deck), With<Library>>,
+    mut q_discard: Query<(&Transform, &mut Deck, &mut Children), With<Discard>>,
+    mut q_cards: Query<(&Card, &mut Transform)>,
+    mut event: EventReader<ShuffleDiscard>,
+    mut flip_writer: EventWriter<FlipCard>,
+) {
+    for e in event.read() {
+        let (library_e, library_t, mut library_d) = q_library.single_mut();
+        let (discard_t, mut discard_d, children) = q_discard.single_mut();
+        library_d.size += discard_d.size;
+
+        discard_d.size = 0;
+
+        for &child in children.iter() {
+            if let Ok((card, mut card_t)) = q_cards.get_mut(child) {
                 cmd.entity(child).remove_parent();
-
-                ordinal.0 = hand.size;
-                card_transform.translation.x += deck_transform.translation.x;
-                card_transform.translation.y += deck_transform.translation.y;
-
-                deck.size -= 1;
-                cmd.entity(entity).push_children(&[child]);
-                hand.size += 1;
+                card_t.translation.x += discard_t.translation.x - library_t.translation.x;
+                card_t.translation.y += discard_t.translation.y - library_t.translation.y;
+                cmd.entity(library_e).push_children(&[child]);
                 flip_writer.send(FlipCard { card: child });
-
                 return;
             }
         }
