@@ -12,8 +12,8 @@ use leafwing_input_manager::{
 };
 
 use super::{
-    card::{Card, FlipCard, Flipping, Ordinal},
-    deck::draw_card,
+    card::{Card, FlipCard, Flipping},
+    deck::{draw_card, Deck, Discard},
     CardAction,
 };
 use crate::{
@@ -66,28 +66,17 @@ impl Plugin for HandPlugin {
 
 //spawn deck when deck plugin is made
 fn spawn_hand(mut commands: Commands) {
-    commands
-        .spawn((
-            InputManagerBundle::<CardAction> {
-                action_state: ActionState::default(),
-                input_map: InputMap::new([
-                    (MouseButton::Left, CardAction::Select),
-                    (MouseButton::Right, CardAction::Flip),
-                ]),
-            },
-            SpatialBundle::default(),
-        ))
-        .insert(Hand {
-            size: 0,
-            selected: None,
-            hovered: None,
-        });
+    commands.spawn((SpatialBundle::default(),)).insert(Hand {
+        size: 0,
+        selected: None,
+        hovered: None,
+    });
 }
 //whenever hand is updated position cards in hand that are not selected by ord using a tween
 fn position_cards(
     mut cmd: Commands,
     q_hand: Query<(&Hand, &Children)>,
-    mut q_cards: Query<(Entity, &Card, &mut Transform, &Ordinal)>,
+    mut q_cards: Query<(Entity, &Card, &mut Transform)>,
     mut q_flipping: Query<&Flipping>,
 ) {
     if q_hand.is_empty() {
@@ -100,17 +89,17 @@ fn position_cards(
 
     let width = (hand.size * 80).clamp(0, 600);
 
-    for &child in children.iter() {
-        if let Ok((entity, card, mut transform, ord)) = q_cards.get_mut(child) {
+    for (i, &child) in children.iter().enumerate() {
+        if let Ok((entity, card, mut transform)) = q_cards.get_mut(child) {
             if hand.selected == Some(entity) {
                 return;
             }
 
-            let angle = (ord.0 as f32 / (hand.size as f32)) * arc_length;
-            let x = ord.0 as f32 / hand.size as f32 * width as f32 - 300.;
+            let angle = (i as f32 / (hand.size as f32)) * arc_length;
+            let x = i as f32 / hand.size as f32 * width as f32 - 300.;
             let y = angle.to_radians().sin() * 40.0; // Calculate y position along the arc
 
-            let mut rot = ord.0 as f32 / hand.size as f32 * rotation_factor - rotation_factor / 2.;
+            let mut rot = i as f32 / hand.size as f32 * rotation_factor - rotation_factor / 2.;
             if !card.face_up {
                 rot *= -1.;
             } else {
@@ -118,7 +107,7 @@ fn position_cards(
             }
             transform.translation.x = transform.translation.x.lerp(&x, &0.2);
             transform.translation.y = transform.translation.y.lerp(&y, &0.2);
-            transform.translation.z = ord.0 as f32;
+            transform.translation.z = i as f32;
             if !q_flipping.contains(entity) {
                 let before = transform.rotation.to_euler(EulerRot::XYZ);
 
@@ -152,18 +141,20 @@ fn pickable_lerp(
 
 fn select_card(
     mut cmd: Commands,
-    mut query: Query<(&ActionState<CardAction>, &mut Hand, &mut Children)>,
-    mut q_window: Query<&Window, With<PrimaryWindow>>,
-    mut q_cards: Query<(Entity, &Card, &Transform, &Ordinal)>,
+    mut actions: Query<&ActionState<CardAction>>,
+    mut q_hand: Query<(&mut Hand, &mut Children, &Transform)>,
+    mut q_window: Query<&Window, (With<PrimaryWindow>, Without<Discard>)>,
+    mut q_cards: Query<(Entity, &Card, &mut Transform), Without<Hand>>,
     mut q_camera: Query<(&Camera, &GlobalTransform), With<CardCamera>>,
     mut flip_writer: EventWriter<FlipCard>,
+    mut q_discard: Query<(Entity, &mut Deck, &Transform), (With<Discard>, Without<Card>)>,
 ) {
-    if query.is_empty() {
+    if q_hand.is_empty() {
         return;
     }
 
-    let (action_state, mut hand, children) = query.single_mut();
-    let mut max_ord = None;
+    let (mut hand, children, hand_transform) = q_hand.single_mut();
+    let action_state = actions.single();
     let mut hovered_entity = None;
 
     if hand.selected.is_none() {
@@ -172,20 +163,14 @@ fn select_card(
             if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, pos) {
                 for &child in children.iter() {
                     //get the topmost hovered card
-                    if let Ok((entity, card, transform, ord)) = q_cards.get_mut(child) {
-                        if let Some(s) = max_ord {
-                            if s > ord.0 {
-                                continue;
-                            }
-                        }
+                    if let Ok((entity, card, transform)) = q_cards.get_mut(child) {
                         //card is 140,190
                         let half_width = 70.;
                         let half_height = 95.;
                         let rotated_bounds =
-                            calculate_rotated_bounds(transform, half_width, half_height);
+                            calculate_rotated_bounds(&transform, half_width, half_height);
 
                         if point_in_polygon(world_pos, &rotated_bounds) {
-                            max_ord = Some(ord.0);
                             hovered_entity = Some(entity);
                         }
                     }
@@ -194,7 +179,7 @@ fn select_card(
         }
         if hovered_entity != hand.hovered {
             if let Some(h) = hand.hovered {
-                if let Ok((entity, card, transform, ord)) = q_cards.get(h) {
+                if let Ok((entity, card, transform)) = q_cards.get(h) {
                     let tween = Tween::new(
                         EaseFunction::QuadraticInOut,
                         Duration::from_millis(100),
@@ -211,7 +196,7 @@ fn select_card(
 
             hand.hovered = hovered_entity;
             if let Some(h) = hand.hovered {
-                if let Ok((entity, card, transform, ord)) = q_cards.get(h) {
+                if let Ok((entity, card, transform)) = q_cards.get(h) {
                     let tween = Tween::new(
                         EaseFunction::QuadraticInOut,
                         Duration::from_millis(100),
@@ -224,15 +209,15 @@ fn select_card(
                 }
             }
         }
-        if action_state.just_pressed(CardAction::Flip) && hand.hovered.is_some() {
-            flip_writer.send(FlipCard {
-                card: hand.hovered.unwrap(),
-            });
-        }
+        // if action_state.just_pressed(CardAction::Flip) && hand.hovered.is_some() {
+        //     flip_writer.send(FlipCard {
+        //         card: hand.hovered.unwrap(),
+        //     });
+        // }
         if action_state.just_pressed(CardAction::Select) && hand.hovered.is_some() {
             hand.selected = hand.hovered;
 
-            if let Ok((entity, card, transform, ord)) = q_cards.get(hand.selected.unwrap()) {
+            if let Ok((entity, card, transform)) = q_cards.get(hand.selected.unwrap()) {
                 //straigten the card
                 let before = transform.rotation.to_euler(EulerRot::XYZ);
                 let mut rot: f32 = 0.;
@@ -254,6 +239,21 @@ fn select_card(
 
     let select_released = action_state.just_released(CardAction::Select);
     if select_released {
+        hand.selected = None;
+    }
+    if action_state.just_pressed(CardAction::Play) && hand.selected.is_some() {
+        let (entity, mut deck, mut deck_t) = q_discard.single_mut();
+        if let Ok((child, card, mut transform)) = q_cards.get_mut(hand.selected.unwrap()) {
+            cmd.entity(child).remove_parent();
+
+            transform.translation.x += hand_transform.translation.x - deck_t.translation.x;
+            transform.translation.y += hand_transform.translation.y - deck_t.translation.y;
+
+            hand.size -= 1;
+            cmd.entity(entity).push_children(&[child]);
+            deck.size += 1;
+            // flip_writer.send(FlipCard { card: child });
+        }
         hand.selected = None;
     }
 }

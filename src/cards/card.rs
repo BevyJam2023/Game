@@ -19,14 +19,11 @@ pub struct FlipCard {
 pub struct CardBundle {
     pub card: Card,
     pub sprite: SpriteBundle,
-    pub ordinal: Ordinal,
 }
 #[derive(Component)]
 pub struct CardFace {
     pub is_front: bool,
 }
-#[derive(Component)]
-pub struct Ordinal(pub usize);
 
 #[derive(Component)]
 pub struct Flipping {
