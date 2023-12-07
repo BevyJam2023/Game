@@ -1,10 +1,13 @@
 use bevy::{
-    core_pipeline::clear_color::ClearColorConfig, prelude::*, render::view::RenderLayers,
+    core_pipeline::clear_color::ClearColorConfig, prelude::*, render::{view::RenderLayers, camera::ScalingMode},
     window::PrimaryWindow,
 };
 use bevy_pancam::{PanCam, PanCamPlugin};
 
-use crate::AppState;
+use crate::{
+    AppState,
+    board
+};
 
 #[derive(Debug, Component)]
 pub struct CardCamera;
@@ -35,6 +38,12 @@ fn setup(mut cmd: Commands) {
             camera: Camera {
                 order: 1,
                 ..default()
+            },
+            projection: OrthographicProjection {
+                near: - 1000.,
+                scaling_mode: ScalingMode::AutoMin { min_width: 1.05 * board::config::SIZE.0, min_height: 1.05 * board::config::SIZE.1 },
+                // scale: 2.,
+                ..Default::default()
             },
             ..default()
         },
