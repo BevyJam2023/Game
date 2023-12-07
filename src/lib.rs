@@ -1,3 +1,4 @@
+mod board;
 mod camera;
 mod cards;
 mod loading;
@@ -5,6 +6,7 @@ mod utils;
 use std::default;
 
 use bevy::prelude::*;
+use board::BoardPlugin;
 use camera::CameraPlugin;
 use cards::CardsPlugin;
 use loading::LoadingPlugin;
@@ -25,6 +27,7 @@ impl Plugin for GamePlugin {
         app.add_state::<AppState>()
             .add_plugins(CameraPlugin)
             .add_plugins(CardsPlugin)
-            .add_plugins(LoadingPlugin);
+            .add_plugins(LoadingPlugin)
+            .add_plugins(BoardPlugin);
     }
 }
