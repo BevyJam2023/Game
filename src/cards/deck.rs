@@ -8,38 +8,116 @@ use leafwing_input_manager::{
 };
 
 use super::{
-    card::{Card, CardBundle, CardFace, FlipCard},
+    card::{Card, CardBundle, CardFace, FlipCard, SpawnCard},
     hand::Hand,
-    CardAction,
+    CardAction, GameState,
 };
 use crate::{loading::TextureAssets, AppState};
 
 #[derive(Component)]
-pub struct Deck {
-    pub size: usize,
-}
+pub struct Deck;
 #[derive(Component)]
 pub struct Discard;
 #[derive(Component)]
 pub struct Library;
+
+#[derive(Resource)]
+pub struct DeckSetup {
+    deck_setup_timer: Timer,
+    draw_timer: Timer,
+    discard_timer: Timer,
+    spawned: usize,
+    hand_size: usize,
+    library_size: usize,
+}
+#[derive(Event)]
+pub struct DrawCard;
 
 pub struct DeckPlugin;
 
 impl Plugin for DeckPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Playing), (spawn_deck, spawn_discard))
+            .add_event::<DrawCard>()
             .add_event::<ShuffleDiscard>()
             .add_systems(
                 Update,
-                (position_cards, draw_card, discard_into_library)
-                    .run_if(in_state(AppState::Playing)),
-            );
+                (
+                    (
+                        (draw_card, discard_into_library),
+                        setup_decks.run_if(in_state(GameState::Setup)),
+                        draw_to_hand_size.run_if(in_state(GameState::Draw)),
+                        discard_hand.run_if(in_state(GameState::Discard)),
+                    )
+                        .run_if(in_state(AppState::Playing)),
+                    position_cards,
+                ),
+            )
+            .insert_resource(DeckSetup {
+                deck_setup_timer: Timer::from_seconds(0.01, TimerMode::Repeating),
+                draw_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
+                discard_timer: Timer::from_seconds(0.01, TimerMode::Repeating),
+                spawned: 0,
+                hand_size: 5,
+                library_size: 60,
+            });
     }
 }
+fn setup_decks(
+    mut cmd: Commands,
+    time: Res<Time>,
+    mut deck_setup: ResMut<DeckSetup>,
+    mut writer: EventWriter<SpawnCard>,
+    mut q_library: Query<Entity, (With<Library>, Without<Discard>)>,
+    // mut q_discard: Query<(&Transform, &mut Deck, &mut Children), (With<Discard>, Without<Card>)>,
+    mut game_state: ResMut<State<GameState>>,
+) {
+    let entity = q_library.single();
+    deck_setup.deck_setup_timer.tick(time.delta());
+    if deck_setup.deck_setup_timer.finished() {
+        deck_setup.spawned += 1;
+        writer.send(SpawnCard { zone_id: entity });
+    }
+    if deck_setup.spawned >= deck_setup.library_size {
+        deck_setup.deck_setup_timer.reset();
+        deck_setup.spawned = 0;
+        cmd.insert_resource(NextState(game_state.next_state()))
+    }
+}
+fn discard_hand(
+    mut cmd: Commands,
+    time: Res<Time>,
+    mut deck_setup: ResMut<DeckSetup>,
+    mut q_hand: Query<&Children, With<Hand>>,
+    mut q_discard: Query<Entity, (With<Discard>)>,
+) {
+    deck_setup.discard_timer.tick(time.delta());
+
+    if q_hand.is_empty() {}
+}
+fn draw_to_hand_size(
+    mut cmd: Commands,
+    time: Res<Time>,
+    mut deck_setup: ResMut<DeckSetup>,
+    mut writer: EventWriter<DrawCard>,
+    mut game_state: ResMut<State<GameState>>,
+) {
+    deck_setup.draw_timer.tick(time.delta());
+
+    if deck_setup.draw_timer.finished() {
+        writer.send(DrawCard);
+        deck_setup.spawned += 1;
+        deck_setup.draw_timer.reset();
+    }
+    if deck_setup.spawned >= deck_setup.hand_size {
+        cmd.insert_resource(NextState(game_state.next_state()))
+    }
+}
+
 fn spawn_discard(mut cmd: Commands) {
     cmd.spawn((
         Discard,
-        Deck { size: 60 },
+        Deck,
         SpatialBundle {
             transform: Transform {
                 translation: Vec3::new(100., -300., 0.),
@@ -55,7 +133,7 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
     let deck_id = cmd
         .spawn((
             Library,
-            Deck { size: 60 },
+            Deck,
             SpatialBundle {
                 transform: Transform {
                     translation: Vec3::new(-400., -300., 0.),
@@ -65,48 +143,6 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
             },
         ))
         .id();
-
-    //TODO make this a make_card func
-    for i in 0..60 {
-        let front = cmd
-            .spawn((
-                SpriteBundle {
-                    texture: textures.card_king.clone(),
-                    visibility: Visibility::Hidden,
-                    transform: Transform {
-                        rotation: Quat::from_euler(EulerRot::XYZ, 0., PI, 0.),
-                        ..default()
-                    },
-
-                    ..default()
-                },
-                CardFace { is_front: true },
-            ))
-            .id();
-        let back = cmd
-            .spawn((
-                SpriteBundle {
-                    texture: textures.card_blue.clone(),
-                    ..default()
-                },
-                CardFace { is_front: false },
-            ))
-            .id();
-
-        let card_id = cmd
-            .spawn(CardBundle {
-                card: Card {
-                    back,
-                    front,
-                    face_up: false,
-                },
-                sprite: SpriteBundle { ..default() },
-            })
-            .id();
-
-        cmd.entity(card_id).push_children(&[front, back]);
-        cmd.entity(deck_id).push_children(&[card_id]);
-    }
 }
 fn position_cards(
     q_deck: Query<(&Transform, &Deck, &Children)>,
@@ -126,16 +162,15 @@ fn position_cards(
 
 pub fn draw_card(
     mut cmd: Commands,
-    actions: Query<&ActionState<CardAction>>,
     mut query: Query<(&Transform, &mut Deck, &mut Children), (With<Library>, Without<Card>)>,
     mut q_cards: Query<(&Card, &mut Transform)>,
     mut hand: Query<(Entity, &mut Hand)>,
+    mut reader: EventReader<DrawCard>,
     mut flip_writer: EventWriter<FlipCard>,
     mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
 ) {
     if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-        let action_state = actions.single();
-        if action_state.just_pressed(CardAction::Draw) {
+        for event in reader.read() {
             let (entity, mut hand) = hand.single_mut();
             for &child in children.iter() {
                 if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
@@ -144,18 +179,18 @@ pub fn draw_card(
                     card_transform.translation.x += deck_transform.translation.x;
                     card_transform.translation.y += deck_transform.translation.y;
 
-                    deck.size -= 1;
                     cmd.entity(entity).push_children(&[child]);
-                    hand.size += 1;
                     flip_writer.send(FlipCard { card: child });
 
                     return;
                 }
             }
         }
-    } else {
-        shuffle_discard_writer.send(ShuffleDiscard);
     }
+
+    // } else {
+    //     shuffle_discard_writer.send(ShuffleDiscard);
+    // }
 }
 #[derive(Event)]
 pub struct ShuffleDiscard;
@@ -171,9 +206,6 @@ pub fn discard_into_library(
     for e in event.read() {
         let (library_e, library_t, mut library_d) = q_library.single_mut();
         let (discard_t, mut discard_d, children) = q_discard.single_mut();
-        library_d.size += discard_d.size;
-
-        discard_d.size = 0;
 
         for &child in children.iter() {
             if let Ok((card, mut card_t)) = q_cards.get_mut(child) {

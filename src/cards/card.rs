@@ -1,4 +1,6 @@
-use bevy::prelude::*;
+use std::f32::consts::PI;
+
+use bevy::{ecs::event::EventId, prelude::*};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
 use super::CardAction;
@@ -13,6 +15,10 @@ pub struct Card {
 #[derive(Event)]
 pub struct FlipCard {
     pub card: Entity,
+}
+#[derive(Event)]
+pub struct SpawnCard {
+    pub zone_id: Entity,
 }
 
 #[derive(Bundle)]
@@ -36,10 +42,57 @@ pub struct CardPlugin;
 
 impl Plugin for CardPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Update, flip_card.run_if(in_state(AppState::Playing)))
-            .add_event::<FlipCard>();
+        app.add_systems(
+            Update,
+            (flip_card, spawn_card).run_if(in_state(AppState::Playing)),
+        )
+        .add_event::<FlipCard>()
+        .add_event::<SpawnCard>();
     }
 }
+fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: Res<TextureAssets>) {
+    for event in reader.read() {
+        let front = cmd
+            .spawn((
+                SpriteBundle {
+                    texture: textures.card_king.clone(),
+                    visibility: Visibility::Hidden,
+                    transform: Transform {
+                        rotation: Quat::from_euler(EulerRot::XYZ, 0., PI, 0.),
+                        ..default()
+                    },
+
+                    ..default()
+                },
+                CardFace { is_front: true },
+            ))
+            .id();
+        let back = cmd
+            .spawn((
+                SpriteBundle {
+                    texture: textures.card_blue.clone(),
+                    ..default()
+                },
+                CardFace { is_front: false },
+            ))
+            .id();
+
+        let card_id = cmd
+            .spawn(CardBundle {
+                card: Card {
+                    back,
+                    front,
+                    face_up: false,
+                },
+                sprite: SpriteBundle { ..default() },
+            })
+            .id();
+
+        cmd.entity(card_id).push_children(&[front, back]);
+        cmd.entity(event.zone_id).push_children(&[card_id]);
+    }
+}
+
 //TODO rotate in axis of rotation so the card flips not in y unless straight
 pub fn flip_card(
     mut q_cards: Query<(Entity, &mut Card), Without<Flipping>>,

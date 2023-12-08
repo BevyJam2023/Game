@@ -2,6 +2,8 @@ mod camera;
 mod cards;
 mod loading;
 mod utils;
+use std::default;
+
 use bevy::prelude::*;
 use camera::CameraPlugin;
 use cards::CardsPlugin;
