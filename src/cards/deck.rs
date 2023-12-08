@@ -8,7 +8,7 @@ use leafwing_input_manager::{
 };
 
 use super::{
-    card::{Card, CardBundle, CardFace, FlipCard, SpawnCard},
+    card::{Card, CardBundle, CardFace, FlipCard, Flipping, SpawnCard},
     hand::Hand,
     CardAction, GameState,
 };
@@ -56,7 +56,7 @@ impl Plugin for DeckPlugin {
             .insert_resource(DeckSetup {
                 deck_setup_timer: Timer::from_seconds(0.01, TimerMode::Repeating),
                 draw_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
-                discard_timer: Timer::from_seconds(0.01, TimerMode::Repeating),
+                discard_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 spawned: 0,
                 hand_size: 5,
                 library_size: 60,
@@ -89,11 +89,30 @@ fn discard_hand(
     time: Res<Time>,
     mut deck_setup: ResMut<DeckSetup>,
     mut q_hand: Query<&Children, With<Hand>>,
-    mut q_discard: Query<Entity, (With<Discard>)>,
+    mut q_discard: Query<(Entity, &mut Transform), (With<Discard>)>,
+    mut q_cards: Query<(Entity, &mut Transform), (Without<Discard>)>,
 ) {
+    if q_hand.is_empty() {
+        deck_setup.discard_timer.reset();
+        cmd.insert_resource(NextState(Some(GameState::Draw)));
+        return;
+    }
+
     deck_setup.discard_timer.tick(time.delta());
 
-    if q_hand.is_empty() {}
+    if deck_setup.discard_timer.finished() {
+        let children = q_hand.single();
+        let (discard_e, discard_t) = q_discard.single();
+        let &child = children.first().unwrap();
+        if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+            cmd.entity(child).remove_parent();
+
+            card_transform.translation.x -= discard_t.translation.x;
+            card_transform.translation.y -= discard_t.translation.y;
+
+            cmd.entity(discard_e).push_children(&[child]);
+        }
+    }
 }
 fn draw_to_hand_size(
     mut cmd: Commands,
@@ -110,6 +129,8 @@ fn draw_to_hand_size(
         deck_setup.draw_timer.reset();
     }
     if deck_setup.spawned >= deck_setup.hand_size {
+        deck_setup.spawned = 0;
+
         cmd.insert_resource(NextState(game_state.next_state()))
     }
 }
@@ -147,6 +168,7 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
 fn position_cards(
     q_deck: Query<(&Transform, &Deck, &Children)>,
     mut q_cards: Query<(&Card, &mut Transform), Without<Deck>>,
+    mut q_flipping: Query<&Flipping>,
 ) {
     for (deck_t, deck, children) in q_deck.iter() {
         for (i, &child) in children.iter().enumerate() {
@@ -155,6 +177,9 @@ fn position_cards(
                 transform.translation.y = transform.translation.y.lerp(&(i as f32 * 0.5), &0.2);
 
                 transform.translation.z = i as f32;
+                if !q_flipping.contains(child) {
+                    transform.rotation = transform.rotation.lerp(Quat::IDENTITY, 0.2);
+                }
             }
         }
     }
@@ -169,28 +194,23 @@ pub fn draw_card(
     mut flip_writer: EventWriter<FlipCard>,
     mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
 ) {
-    if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-        for event in reader.read() {
+    for event in reader.read() {
+        if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
             let (entity, mut hand) = hand.single_mut();
-            for &child in children.iter() {
-                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
-                    cmd.entity(child).remove_parent();
+            let &child = children.first().unwrap();
+            if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                cmd.entity(child).remove_parent();
 
-                    card_transform.translation.x += deck_transform.translation.x;
-                    card_transform.translation.y += deck_transform.translation.y;
+                card_transform.translation.x += deck_transform.translation.x;
+                card_transform.translation.y += deck_transform.translation.y;
 
-                    cmd.entity(entity).push_children(&[child]);
-                    flip_writer.send(FlipCard { card: child });
-
-                    return;
-                }
+                cmd.entity(entity).push_children(&[child]);
+                flip_writer.send(FlipCard { card: child });
             }
+        } else {
+            shuffle_discard_writer.send(ShuffleDiscard);
         }
     }
-
-    // } else {
-    //     shuffle_discard_writer.send(ShuffleDiscard);
-    // }
 }
 #[derive(Event)]
 pub struct ShuffleDiscard;
