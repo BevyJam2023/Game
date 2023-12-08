@@ -14,7 +14,7 @@ use leafwing_input_manager::{
 use super::{
     card::{Card, FlipCard, Flipping},
     deck::{draw_card, Deck, Discard},
-    CardAction,
+    CardAction, GameState,
 };
 use crate::{
     camera::{lerp, CardCamera},
@@ -24,7 +24,6 @@ use crate::{
 
 #[derive(Component)]
 pub struct Hand {
-    pub size: usize,
     pub selected: Option<Entity>,
     pub hovered: Option<Entity>,
 }
@@ -58,7 +57,11 @@ impl Plugin for HandPlugin {
             .add_systems(Update, component_animator_system::<Transform>)
             .add_systems(
                 Update,
-                (position_cards.before(draw_card), select_card, pickable_lerp)
+                (
+                    position_cards.before(draw_card),
+                    select_card.run_if(in_state(GameState::Playing)),
+                    pickable_lerp,
+                )
                     .run_if(in_state(AppState::Playing)),
             );
     }
@@ -67,7 +70,6 @@ impl Plugin for HandPlugin {
 //spawn deck when deck plugin is made
 fn spawn_hand(mut commands: Commands) {
     commands.spawn((SpatialBundle::default(),)).insert(Hand {
-        size: 0,
         selected: None,
         hovered: None,
     });
@@ -84,10 +86,11 @@ fn position_cards(
     }
 
     let (hand, children) = q_hand.single();
+    let hand_size = children.len();
     let arc_length = 180.0;
     let rotation_factor = 30.; // Adjust the rotation factor as desired
 
-    let width = (hand.size * 80).clamp(0, 600);
+    let width = (hand_size * 80).clamp(0, 600);
 
     for (i, &child) in children.iter().enumerate() {
         if let Ok((entity, card, mut transform)) = q_cards.get_mut(child) {
@@ -95,11 +98,11 @@ fn position_cards(
                 return;
             }
 
-            let angle = (i as f32 / (hand.size as f32)) * arc_length;
-            let x = i as f32 / hand.size as f32 * width as f32 - 300.;
+            let angle = (i as f32 / (hand_size as f32)) * arc_length;
+            let x = i as f32 / hand_size as f32 * width as f32 - 300.;
             let y = angle.to_radians().sin() * 40.0; // Calculate y position along the arc
 
-            let mut rot = i as f32 / hand.size as f32 * rotation_factor - rotation_factor / 2.;
+            let mut rot = i as f32 / hand_size as f32 * rotation_factor - rotation_factor / 2.;
             if !card.face_up {
                 rot *= -1.;
             } else {
@@ -242,18 +245,8 @@ fn select_card(
         hand.selected = None;
     }
     if action_state.just_pressed(CardAction::Play) && hand.selected.is_some() {
-        let (entity, mut deck, mut deck_t) = q_discard.single_mut();
-        if let Ok((child, card, mut transform)) = q_cards.get_mut(hand.selected.unwrap()) {
-            cmd.entity(child).remove_parent();
-
-            transform.translation.x += hand_transform.translation.x - deck_t.translation.x;
-            transform.translation.y += hand_transform.translation.y - deck_t.translation.y;
-
-            hand.size -= 1;
-            cmd.entity(entity).push_children(&[child]);
-            deck.size += 1;
-            // flip_writer.send(FlipCard { card: child });
-        }
+        cmd.entity(hand.selected.unwrap()).despawn_recursive();
+        cmd.insert_resource(NextState(Some(GameState::Discard)));
         hand.selected = None;
     }
 }
