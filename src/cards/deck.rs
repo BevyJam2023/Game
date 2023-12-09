@@ -184,9 +184,12 @@ fn position_cards(
         for (i, &child) in children.iter().enumerate() {
             if let Ok((card, mut transform)) = q_cards.get_mut(child) {
                 transform.translation.x = transform.translation.x.lerp(&0., &0.2);
-                transform.translation.y = transform.translation.y.lerp(&(i as f32 * 0.5), &0.2);
+                transform.translation.y = transform
+                    .translation
+                    .y
+                    .lerp(&((children.len() - 1 - i) as f32 * 0.5), &0.2);
 
-                transform.translation.z = i as f32;
+                transform.translation.z = (children.len() - 1 - i) as f32;
                 if !q_flipping.contains(child) {
                     let before = transform.rotation.to_euler(EulerRot::XYZ);
                     let mut rot: f32 = 0.;
