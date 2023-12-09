@@ -119,8 +119,7 @@ fn discard_hand(
 
             card_transform.translation.x -= discard_t.translation.x;
             card_transform.translation.y -= discard_t.translation.y;
-
-            cmd.entity(discard_e).push_children(&[child]);
+            cmd.entity(discard_e).insert_children(0, &[child]);
         }
     }
 }

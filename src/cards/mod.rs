@@ -51,9 +51,8 @@ pub fn setup_input(mut cmd: Commands) {
     let mut input_map = InputMap::new([
         (MouseButton::Left, CardAction::Select),
         (MouseButton::Right, CardAction::Flip),
-        (MouseButton::Middle, CardAction::Play),
     ]);
-    input_map.insert(KeyCode::Space, CardAction::Draw);
+    input_map.insert(KeyCode::Space, CardAction::Play);
 
     cmd.spawn((InputManagerBundle::<CardAction> {
         action_state: ActionState::default(),

@@ -19,7 +19,7 @@ impl Plugin for BoardPlugin {
 fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
     cmd.spawn((
         SpriteBundle {
-            // transform: Transform::IDENTITY.with_scale(Vec3::splat(4.)),
+            transform: Transform::IDENTITY.with_translation(Vec3::new(0., 0., -100.)),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(config::SIZE.0, config::SIZE.1)),
                 ..Default::default()
