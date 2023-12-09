@@ -1,32 +1,37 @@
 use bevy::{
     ecs::system::Command,
     prelude::{shape::RegularPolygon, *},
+    sprite::MaterialMesh2dBundle,
 };
+use rand::seq::IteratorRandom;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 use crate::{loading::TextureAssets, AppState};
-
-pub const RED: Color = Color::RED;
-pub const GREEN: Color = Color::GREEN;
-pub const BLUE: Color = Color::BLUE;
-pub const YELLOW: Color = Color::YELLOW;
 
 pub mod config {
     pub const POLYGON_RADIUS: f32 = 100.;
 }
-
+#[derive(EnumIter, Clone)]
 pub enum GameColor {
     Red,
     Green,
     Blue,
     Yellow,
 }
+impl GameColor {
+    fn random_color() -> GameColor {
+        let mut rng = rand::thread_rng();
+        GameColor::iter().choose(&mut rng).unwrap()
+    }
+}
 impl Into<Color> for GameColor {
     fn into(self) -> Color {
         match self {
-            GameColor::Red => RED,
-            GameColor::Blue => BLUE,
-            GameColor::Green => GREEN,
-            GameColor::Yellow => YELLOW,
+            GameColor::Red => Color::RED,
+            GameColor::Blue => Color::BLUE,
+            GameColor::Green => Color::GREEN,
+            GameColor::Yellow => Color::YELLOW,
         }
     }
 }
@@ -38,7 +43,7 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-
+#[derive(EnumIter, Clone)]
 pub enum GamePolygon {
     Triangle,
     Square,
@@ -61,19 +66,31 @@ impl GamePolygon {
             GamePolygon::Pentagon => 5,
             GamePolygon::Hexagon => 6,
         }
+  }
+  pub fn random_polygon() -> GamePolygon {
+        let mut rng = rand::thread_rng();
+        GamePolygon::iter().choose(&mut rng).unwrap()
     }
 }
 
-pub struct GameShape {
+#[derive(Clone)]
+pub struct Shape {
     polygon: GamePolygon,
     color: GameColor,
 }
-impl GameShape {
+impl Shape {
     fn get_bundle(self, ma: &Res<ShapeAssets>, c_m : &Res<ColorMaterialAssets>) -> ColorMesh2dBundle {
         ColorMesh2dBundle {
             mesh: get_polygon_mesh(&self.polygon, ma).into(),
             material: get_color_material(&self.color, c_m),
             ..Default::default()
+        }
+    }
+  
+  pub fn random_shape() -> Shape {
+        Shape {
+            polygon: GamePolygon::random_polygon(),
+            color: GameColor::random_color(),
         }
     }
 }

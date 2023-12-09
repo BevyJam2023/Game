@@ -1,10 +1,10 @@
 mod board;
 mod camera;
 mod cards;
+mod game_shapes;
 mod loading;
 mod operation;
 mod utils;
-mod game_shapes;
 
 use std::default;
 

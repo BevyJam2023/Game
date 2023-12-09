@@ -34,13 +34,11 @@ fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
 // NOTE:
 // Reference for getting image size :
 // if let Some(image) = images.get(&textures.card_king) {
-    //     // Get the dimensions of the image
-    //     let dimensions = image.texture_descriptor.size;
-    //     println!("Image Dimensions: {:?}", dimensions);
-    // } else {
-    //     println!("Image not loaded yet");
-    // }
+//     // Get the dimensions of the image
+//     let dimensions = image.texture_descriptor.size;
+//     println!("Image Dimensions: {:?}", dimensions);
+// } else {
+//     println!("Image not loaded yet");
+// }
 
-pub fn get_deck_transform(board_size: Vec2, card_height: f32) {
-
-}
+pub fn get_deck_transform(board_size: Vec2, card_height: f32) {}
