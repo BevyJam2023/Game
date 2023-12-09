@@ -1,29 +1,37 @@
-use bevy::{ecs::system::Command, prelude::{*, shape::RegularPolygon}};
+use bevy::{
+    ecs::system::Command,
+    prelude::{shape::RegularPolygon, *},
+    sprite::MaterialMesh2dBundle,
+};
+use rand::seq::IteratorRandom;
+use strum::IntoEnumIterator;
+use strum_macros::EnumIter;
 
 use crate::{loading::TextureAssets, AppState};
-
-pub const RED: Color = Color::RED;
-pub const GREEN: Color = Color::GREEN;
-pub const BLUE: Color = Color::BLUE;
-pub const YELLOW: Color = Color::YELLOW;
 
 pub mod config {
     pub const POLYGON_RADIUS: f32 = 100.;
 }
-
+#[derive(EnumIter, Clone)]
 pub enum GameColor {
     Red,
     Green,
     Blue,
     Yellow,
 }
+impl GameColor {
+    fn random_color() -> GameColor {
+        let mut rng = rand::thread_rng();
+        GameColor::iter().choose(&mut rng).unwrap()
+    }
+}
 impl Into<Color> for GameColor {
     fn into(self) -> Color {
         match self {
-            GameColor::Red => RED,
-            GameColor::Blue => BLUE,
-            GameColor::Green => GREEN,
-            GameColor::Yellow => YELLOW,
+            GameColor::Red => Color::RED,
+            GameColor::Blue => Color::BLUE,
+            GameColor::Green => Color::GREEN,
+            GameColor::Yellow => Color::YELLOW,
         }
     }
 }
@@ -35,7 +43,7 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-
+#[derive(EnumIter, Clone)]
 pub enum GamePolygon {
     Triangle,
     Square,
@@ -46,7 +54,7 @@ impl Into<RegularPolygon> for GamePolygon {
     fn into(self) -> RegularPolygon {
         RegularPolygon {
             radius: config::POLYGON_RADIUS,
-            sides: self.get_vertices().into()
+            sides: self.get_vertices().into(),
         }
     }
 }
@@ -58,23 +66,36 @@ impl GamePolygon {
             GamePolygon::Pentagon => 5,
             GamePolygon::Hexagon => 6,
         }
+    }
+    pub fn random_polygon() -> GamePolygon {
+        let mut rng = rand::thread_rng();
+        GamePolygon::iter().choose(&mut rng).unwrap()
+    }
 }
-}
-
-pub struct GameShape {
+#[derive(Clone)]
+pub struct Shape {
     polygon: GamePolygon,
-    color: GameColor
+    color: GameColor,
 }
-
-pub struct 
+impl Shape {
+    pub fn random_shape() -> Shape {
+        Shape {
+            polygon: GamePolygon::random_polygon(),
+            color: GameColor::random_color(),
+        }
+    }
+}
 
 pub struct GameShapePlugin;
 
 impl Plugin for GameShapePlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(Startup, |mut cmd: Commands, mut a: ResMut<Assets<Mesh>>, m: ResMut<Assets<ColorMaterial>>| {
-            // TODO:
-            // Store Handles
-        });
+        app.add_systems(
+            Startup,
+            |mut cmd: Commands, mut a: ResMut<Assets<Mesh>>, m: ResMut<Assets<ColorMaterial>>| {
+                // TODO:
+                // Store Handles
+            },
+        );
     }
 }

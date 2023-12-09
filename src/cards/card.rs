@@ -4,11 +4,7 @@ use bevy::{ecs::event::EventId, prelude::*};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
 use super::CardAction;
-use crate::{
-    loading::TextureAssets,
-    operation::{Operation, Shape},
-    AppState,
-};
+use crate::{game_shapes::Shape, loading::TextureAssets, operation::Operation, AppState};
 
 #[derive(Component)]
 pub struct Card {
@@ -58,7 +54,7 @@ impl Plugin for CardPlugin {
 }
 fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: Res<TextureAssets>) {
     for event in reader.read() {
-        let operation = event.operation.get_operation_bundle(&mut cmd);
+        let operation_entity = event.operation.get_operation_entity(&mut cmd);
         let front = cmd
             .spawn((
                 SpriteBundle {
@@ -90,12 +86,12 @@ fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: R
                     back,
                     front,
                     face_up: false,
-                    operation: Operation::Mul(Shape::Square, 2),
+                    operation: event.operation.clone(),
                 },
                 sprite: SpriteBundle { ..default() },
             })
             .id();
-        cmd.entity(front).push_children(&operation);
+        cmd.entity(front).push_children(&operation_entity);
 
         cmd.entity(card_id).push_children(&[front, back]);
         cmd.entity(event.zone_id).push_children(&[card_id]);
