@@ -4,13 +4,18 @@ use bevy::{ecs::event::EventId, prelude::*};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
 use super::CardAction;
-use crate::{loading::TextureAssets, AppState};
+use crate::{
+    loading::TextureAssets,
+    operation::{Operation, Shape},
+    AppState,
+};
 
 #[derive(Component)]
 pub struct Card {
     pub front: Entity,
     pub back: Entity,
     pub face_up: bool,
+    pub operation: Operation,
 }
 #[derive(Event)]
 pub struct FlipCard {
@@ -19,6 +24,7 @@ pub struct FlipCard {
 #[derive(Event)]
 pub struct SpawnCard {
     pub zone_id: Entity,
+    pub operation: Operation,
 }
 
 #[derive(Bundle)]
@@ -52,10 +58,11 @@ impl Plugin for CardPlugin {
 }
 fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: Res<TextureAssets>) {
     for event in reader.read() {
+        let operation = event.operation.get_operation_bundle(&mut cmd);
         let front = cmd
             .spawn((
                 SpriteBundle {
-                    texture: textures.card_king.clone(),
+                    texture: textures.card_mul.clone(),
                     visibility: Visibility::Hidden,
                     transform: Transform {
                         rotation: Quat::from_euler(EulerRot::XYZ, 0., PI, 0.),
@@ -83,10 +90,12 @@ fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: R
                     back,
                     front,
                     face_up: false,
+                    operation: Operation::Mul(Shape::Square, 2),
                 },
                 sprite: SpriteBundle { ..default() },
             })
             .id();
+        cmd.entity(front).push_children(&operation);
 
         cmd.entity(card_id).push_children(&[front, back]);
         cmd.entity(event.zone_id).push_children(&[card_id]);

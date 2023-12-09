@@ -59,8 +59,7 @@ impl Plugin for HandPlugin {
                 Update,
                 (
                     position_cards.before(draw_card),
-                    select_card.run_if(in_state(GameState::Playing)),
-                    pickable_lerp,
+                    (pickable_lerp, select_card).run_if(in_state(GameState::Playing)),
                 )
                     .run_if(in_state(AppState::Playing)),
             );
@@ -95,7 +94,7 @@ fn position_cards(
     for (i, &child) in children.iter().enumerate() {
         if let Ok((entity, card, mut transform)) = q_cards.get_mut(child) {
             if hand.selected == Some(entity) {
-                return;
+                continue;
             }
 
             let angle = (i as f32 / (hand_size as f32)) * arc_length;
