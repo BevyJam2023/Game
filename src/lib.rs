@@ -3,6 +3,8 @@ mod camera;
 mod cards;
 mod loading;
 mod utils;
+mod game_shapes;
+
 use std::default;
 
 use bevy::prelude::*;
