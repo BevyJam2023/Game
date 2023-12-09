@@ -1,15 +1,14 @@
 use std::iter::repeat_with;
 
-use bevy::{
-    prelude::{Entity, Handle, Image, ResMut},
-    sprite::SpriteBundle,
-    utils::default,
-};
+use bevy::{prelude::*, sprite::SpriteBundle, utils::default};
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
 
-use crate::{game_shapes::Shape, loading::TextureAssets};
+use crate::{
+    game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
+    loading::TextureAssets,
+};
 #[derive(Clone)]
 pub enum Operation {
     Mul(Shape, u32),
@@ -38,16 +37,126 @@ impl Operation {
     pub(crate) fn get_operation_entity(
         &self,
         cmd: &mut bevy::prelude::Commands<'_, '_>,
-    ) -> [Entity; 1] {
+        textures: &Res<TextureAssets>,
+
+        ma: &Res<ShapeAssets>,
+        c_m: &Res<ColorMaterialAssets>,
+    ) -> Vec<Entity> {
         match self {
             Operation::Mul(s, i) => {
-                // s.get_sprite();
+                vec![
+                    cmd.spawn(s.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(-40., 0., 1.),
+                            scale: Vec3::new(0.25, 0.25, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.mul.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.4, 0.4, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.two.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.9, 0.9, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                ]
             },
-            Operation::Sub(s1, s2) => {},
-            Operation::Add(s1, s2) => {},
-            Operation::Exp(s, i) => {},
+            Operation::Sub(s1, s2) => {
+                vec![
+                    cmd.spawn(s1.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(-40., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.sub.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.4, 0.4, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                    cmd.spawn(s2.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                ]
+            },
+            Operation::Add(s1, s2) => {
+                vec![
+                    cmd.spawn(s1.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(-40., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.add.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.4, 0.4, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                    cmd.spawn(s2.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                ]
+            },
+            Operation::Exp(s, i) => {
+                vec![
+                    cmd.spawn(s.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.two.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(40., 40., 1.),
+                            scale: Vec3::new(0.5, 0.5, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                ]
+            },
         }
-        [cmd.spawn(SpriteBundle { ..default() }).id()]
     }
 }
 pub fn generate_random_operations(num: usize) -> Vec<Operation> {

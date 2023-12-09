@@ -12,6 +12,7 @@ use bevy::prelude::*;
 use board::BoardPlugin;
 use camera::CameraPlugin;
 use cards::CardsPlugin;
+use game_shapes::GameShapePlugin;
 use loading::LoadingPlugin;
 
 pub struct GamePlugin;
@@ -31,6 +32,7 @@ impl Plugin for GamePlugin {
             .add_plugins(CameraPlugin)
             .add_plugins(CardsPlugin)
             .add_plugins(LoadingPlugin)
+            .add_plugins(GameShapePlugin)
             .add_plugins(BoardPlugin);
     }
 }

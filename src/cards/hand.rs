@@ -109,7 +109,7 @@ fn position_cards(
             }
             transform.translation.x = transform.translation.x.lerp(&x, &0.2);
             transform.translation.y = transform.translation.y.lerp(&y, &0.2);
-            transform.translation.z = i as f32;
+            transform.translation.z = i as f32 * 10.;
             if !q_flipping.contains(entity) {
                 let before = transform.rotation.to_euler(EulerRot::XYZ);
 
@@ -135,6 +135,7 @@ fn pickable_lerp(
                 if let Ok((entity, card, mut transform)) = q_cards.get_mut(selected) {
                     transform.translation.x = transform.translation.x.lerp(&world_pos.x, &0.2);
                     transform.translation.y = transform.translation.y.lerp(&world_pos.y, &0.2);
+                    transform.translation.z = 100.
                 }
             }
         }

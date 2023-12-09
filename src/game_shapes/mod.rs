@@ -10,9 +10,9 @@ use strum_macros::EnumIter;
 use crate::{loading::TextureAssets, AppState};
 
 pub mod config {
-    pub const POLYGON_RADIUS: f32 = 100.;
+    pub const POLYGON_RADIUS: f32 = 80.;
 }
-#[derive(EnumIter, Clone)]
+#[derive(EnumIter, Clone, Copy)]
 pub enum GameColor {
     Red,
     Green,
@@ -43,7 +43,7 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-#[derive(EnumIter, Clone)]
+#[derive(EnumIter, Clone, Copy)]
 pub enum GamePolygon {
     Triangle,
     Square,
@@ -73,13 +73,13 @@ impl GamePolygon {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Shape {
     polygon: GamePolygon,
     color: GameColor,
 }
 impl Shape {
-    fn get_bundle(
+    pub fn get_bundle(
         self,
         ma: &Res<ShapeAssets>,
         c_m: &Res<ColorMaterialAssets>,
