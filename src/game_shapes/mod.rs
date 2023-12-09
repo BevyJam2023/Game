@@ -66,8 +66,8 @@ impl GamePolygon {
             GamePolygon::Pentagon => 5,
             GamePolygon::Hexagon => 6,
         }
-  }
-  pub fn random_polygon() -> GamePolygon {
+    }
+    pub fn random_polygon() -> GamePolygon {
         let mut rng = rand::thread_rng();
         GamePolygon::iter().choose(&mut rng).unwrap()
     }
@@ -79,15 +79,19 @@ pub struct Shape {
     color: GameColor,
 }
 impl Shape {
-    fn get_bundle(self, ma: &Res<ShapeAssets>, c_m : &Res<ColorMaterialAssets>) -> ColorMesh2dBundle {
+    fn get_bundle(
+        self,
+        ma: &Res<ShapeAssets>,
+        c_m: &Res<ColorMaterialAssets>,
+    ) -> ColorMesh2dBundle {
         ColorMesh2dBundle {
             mesh: get_polygon_mesh(&self.polygon, ma).into(),
             material: get_color_material(&self.color, c_m),
             ..Default::default()
         }
     }
-  
-  pub fn random_shape() -> Shape {
+
+    pub fn random_shape() -> Shape {
         Shape {
             polygon: GamePolygon::random_polygon(),
             color: GameColor::random_color(),
@@ -120,7 +124,7 @@ pub fn get_polygon_mesh(p: &GamePolygon, ma: &Res<ShapeAssets>) -> Handle<Mesh> 
     }
 }
 
-pub fn get_color_material(p: &GameColor, c_m : &Res<ColorMaterialAssets>) -> Handle<ColorMaterial> {
+pub fn get_color_material(p: &GameColor, c_m: &Res<ColorMaterialAssets>) -> Handle<ColorMaterial> {
     match *p {
         GameColor::Red => c_m.red.clone_weak(),
         GameColor::Green => c_m.green.clone_weak(),
@@ -150,10 +154,10 @@ impl Plugin for GameShapePlugin {
                     s_a.hexagon =
                         a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 6).into());
 
-                    c_m_a.red = m.add(ColorMaterial::from(RED));
-                    c_m_a.green = m.add(ColorMaterial::from(GREEN));
-                    c_m_a.blue = m.add(ColorMaterial::from(BLUE));
-                    c_m_a.yellow = m.add(ColorMaterial::from(YELLOW));
+                    c_m_a.red = m.add(ColorMaterial::from(Color::RED));
+                    c_m_a.green = m.add(ColorMaterial::from(Color::GREEN));
+                    c_m_a.blue = m.add(ColorMaterial::from(Color::BLUE));
+                    c_m_a.yellow = m.add(ColorMaterial::from(Color::YELLOW));
                 },
             );
     }
