@@ -35,8 +35,14 @@ pub struct TextureAssets {
     pub card_red: Handle<Image>,
     #[asset(path = "faces/card_blue.png")]
     pub card_blue: Handle<Image>,
-    #[asset(path = "faces/cardSpadesK.png")]
-    pub card_king: Handle<Image>,
-    #[asset(path = "faces/cardSpadesA.png")]
-    pub card_ace: Handle<Image>,
+    #[asset(path = "cards/mul.png")]
+    pub card_mul: Handle<Image>,
+    #[asset(path = "cards/sub.png")]
+    pub card_sub: Handle<Image>,
+    #[asset(path = "cards/add.png")]
+    pub card_add: Handle<Image>,
+    #[asset(path = "cards/mul2.png")]
+    pub card_mul2: Handle<Image>,
+    #[asset(path = "cards/exp2.png")]
+    pub card_exp2: Handle<Image>,
 }

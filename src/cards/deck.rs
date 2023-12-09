@@ -12,7 +12,11 @@ use super::{
     hand::Hand,
     CardAction, GameState,
 };
-use crate::{loading::TextureAssets, AppState};
+use crate::{
+    loading::TextureAssets,
+    operation::{generate_random_cards, Operation},
+    AppState,
+};
 
 #[derive(Component)]
 pub struct Deck;
@@ -28,7 +32,7 @@ pub struct DeckSetup {
     discard_timer: Timer,
     spawned: usize,
     hand_size: usize,
-    library_size: usize,
+    library_operations: Vec<Operation>,
 }
 #[derive(Event)]
 pub struct DrawCard;
@@ -59,7 +63,7 @@ impl Plugin for DeckPlugin {
                 discard_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 spawned: 0,
                 hand_size: 5,
-                library_size: 60,
+                library_operations: generate_random_cards(60),
             });
     }
 }
@@ -75,10 +79,13 @@ fn setup_decks(
     let entity = q_library.single();
     deck_setup.deck_setup_timer.tick(time.delta());
     if deck_setup.deck_setup_timer.finished() {
+        writer.send(SpawnCard {
+            operation: deck_setup.library_operations[deck_setup.spawned].clone(),
+            zone_id: entity,
+        });
         deck_setup.spawned += 1;
-        writer.send(SpawnCard { zone_id: entity });
     }
-    if deck_setup.spawned >= deck_setup.library_size {
+    if deck_setup.spawned >= deck_setup.library_operations.len() {
         deck_setup.deck_setup_timer.reset();
         deck_setup.spawned = 0;
         cmd.insert_resource(NextState(game_state.next_state()))
@@ -91,6 +98,7 @@ fn discard_hand(
     mut q_hand: Query<&Children, With<Hand>>,
     mut q_discard: Query<(Entity, &mut Transform), (With<Discard>)>,
     mut q_cards: Query<(Entity, &mut Transform), (Without<Discard>)>,
+    mut flip_writer: EventWriter<FlipCard>,
 ) {
     if q_hand.is_empty() {
         deck_setup.discard_timer.reset();
@@ -105,6 +113,8 @@ fn discard_hand(
         let (discard_e, discard_t) = q_discard.single();
         let &child = children.first().unwrap();
         if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+            flip_writer.send(FlipCard { card: child });
+
             cmd.entity(child).remove_parent();
 
             card_transform.translation.x -= discard_t.translation.x;
@@ -178,7 +188,16 @@ fn position_cards(
 
                 transform.translation.z = i as f32;
                 if !q_flipping.contains(child) {
-                    transform.rotation = transform.rotation.lerp(Quat::IDENTITY, 0.2);
+                    let before = transform.rotation.to_euler(EulerRot::XYZ);
+                    let mut rot: f32 = 0.;
+                    if card.face_up {
+                        rot += 180.;
+                    }
+
+                    transform.rotation = transform.rotation.lerp(
+                        Quat::from_euler(EulerRot::XYZ, before.0, before.1, rot.to_radians()),
+                        0.2,
+                    );
                 }
             }
         }
@@ -233,7 +252,6 @@ pub fn discard_into_library(
                 card_t.translation.x += discard_t.translation.x - library_t.translation.x;
                 card_t.translation.y += discard_t.translation.y - library_t.translation.y;
                 cmd.entity(library_e).push_children(&[child]);
-                flip_writer.send(FlipCard { card: child });
             }
         }
     }
