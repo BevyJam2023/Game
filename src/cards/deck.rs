@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     loading::TextureAssets,
-    operation::{generate_random_cards, Operation},
+    operation::{generate_random_operations, Operation},
     AppState,
 };
 
@@ -63,7 +63,7 @@ impl Plugin for DeckPlugin {
                 discard_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 spawned: 0,
                 hand_size: 5,
-                library_operations: generate_random_cards(60),
+                library_operations: generate_random_operations(60),
             });
     }
 }
