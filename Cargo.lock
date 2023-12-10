@@ -404,6 +404,7 @@ version = "0.12.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "e4bc7e09282a82a48d70ade0c4c1154b0fd7882a735a39c66766a5d0f4718ea9"
 dependencies = [
+ "bevy_dylib",
  "bevy_internal 0.12.1",
 ]
 
@@ -681,6 +682,15 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_dylib"
+version = "0.12.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "45b99001eb4837c78d9c63cc8b32fda61ea96b194a2cda54b569aeee69a9853c"
+dependencies = [
+ "bevy_internal 0.12.1",
+]
+
+[[package]]
 name = "bevy_ecs"
 version = "0.11.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -897,7 +907,6 @@ dependencies = [
  "bevy_input 0.12.1",
  "bevy_log 0.12.1",
  "bevy_math 0.12.1",
- "bevy_pbr",
  "bevy_ptr 0.12.1",
  "bevy_reflect 0.12.1",
  "bevy_render",
@@ -1019,32 +1028,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0fc188c00741b4e7736cf1ba8e394abce7daf479284f5ca551408d36147c7bd"
 dependencies = [
  "bevy 0.12.1",
-]
-
-[[package]]
-name = "bevy_pbr"
-version = "0.12.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "520bfd2a898c74f84ea52cfb8eb061f37373ad15e623489d5f75d27ebd6138fe"
-dependencies = [
- "bevy_app 0.12.1",
- "bevy_asset 0.12.1",
- "bevy_core_pipeline",
- "bevy_derive 0.12.1",
- "bevy_ecs 0.12.1",
- "bevy_math 0.12.1",
- "bevy_reflect 0.12.1",
- "bevy_render",
- "bevy_transform 0.12.1",
- "bevy_utils 0.12.1",
- "bevy_window 0.12.1",
- "bitflags 2.4.1",
- "bytemuck",
- "fixedbitset",
- "naga_oil",
- "radsort",
- "smallvec",
- "thread_local",
 ]
 
 [[package]]
@@ -3679,6 +3662,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "sham"
+version = "0.1.0"
+dependencies = [
+ "bevy 0.12.1",
+ "bevy_asset_loader",
+ "bevy_kira_audio",
+ "bevy_pancam",
+ "bevy_tweening",
+ "bevy_xpbd_2d",
+ "lazy_static",
+ "leafwing-input-manager",
+ "maplit",
+ "rand",
+ "strum",
+ "strum_macros",
+]
+
+[[package]]
 name = "sharded-slab"
 version = "0.1.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -4334,24 +4335,6 @@ dependencies = [
  "bitflags 2.4.1",
  "js-sys",
  "web-sys",
-]
-
-[[package]]
-name = "whoot"
-version = "0.1.0"
-dependencies = [
- "bevy 0.12.1",
- "bevy_asset_loader",
- "bevy_kira_audio",
- "bevy_pancam",
- "bevy_tweening",
- "bevy_xpbd_2d",
- "lazy_static",
- "leafwing-input-manager",
- "maplit",
- "rand",
- "strum",
- "strum_macros",
 ]
 
 [[package]]

@@ -5,6 +5,7 @@ mod cards;
 mod game_shapes;
 mod loading;
 mod operation;
+mod ui;
 mod utils;
 
 use std::default;
@@ -16,6 +17,7 @@ use camera::CameraPlugin;
 use cards::CardsPlugin;
 use game_shapes::GameShapePlugin;
 use loading::LoadingPlugin;
+use ui::UIPlugin;
 
 pub struct GamePlugin;
 
@@ -24,8 +26,10 @@ pub enum AppState {
     // During the loading State the LoadingPlugin will load our assets
     #[default]
     Loading,
+    Instruction,
     // During this State the actual game logic is executed
     Playing,
+    Menu,
 }
 
 impl Plugin for GamePlugin {
@@ -37,6 +41,7 @@ impl Plugin for GamePlugin {
                 CardsPlugin,
                 LoadingPlugin,
                 GameShapePlugin,
+                UIPlugin,
                 BoardPlugin,
             ));
     }
