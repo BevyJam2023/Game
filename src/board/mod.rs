@@ -1,12 +1,18 @@
+use std::ops::Deref;
+
 use bevy::{ecs::system::Command, prelude::*};
 use bevy_xpbd_2d::prelude::{
-    Collider, Collision, ExternalAngularImpulse, ExternalImpulse, Restitution, RigidBody,
+    Collider, Collision, ExternalAngularImpulse, ExternalImpulse, LinearVelocity, Restitution,
+    RigidBody,
 };
 use rand::Rng;
 
 use crate::{
+    cards::{self, rules::Rule},
     game_shapes::{self, ColorMaterialAssets, GameColor, GamePolygon, Shape, ShapeAssets},
     loading::TextureAssets,
+    operation::Operation,
+    utils::average,
     AppState,
 };
 
@@ -22,6 +28,7 @@ pub mod config {
 pub struct SpawnBody {
     shape: Shape,
     transform: Transform,
+    velocity: Option<LinearVelocity>,
 }
 
 #[derive(Component)]
@@ -34,7 +41,8 @@ impl Plugin for BoardPlugin {
             .add_systems(OnEnter(AppState::Playing), setup)
             .add_systems(
                 Update,
-                (spawn_bodies, spawn_on_timer).run_if(in_state(AppState::Playing)),
+                (spawn_bodies, spawn_on_timer, shape_collisions)
+                    .run_if(in_state(AppState::Playing)),
             );
     }
 }
@@ -113,6 +121,7 @@ fn spawn_bodies(
         cmd.spawn((
             event.shape.get_bundle(&mesh, &color_mat),
             event.shape.polygon.create_collider(),
+            event.shape.clone(),
             RigidBody::Dynamic,
             // ExternalImpulse::new(99999. * Vec2::Y).with_persistence(true),
             ExternalAngularImpulse::new(999.).with_persistence(true),
@@ -122,10 +131,75 @@ fn spawn_bodies(
     }
 }
 
-fn shape_collisions(mut collision_event_reader: EventReader<Collision>) {
+fn shape_collisions(
+    rules: Query<&Rule>,
+    q_shape: Query<(&Shape, &Transform, &LinearVelocity)>,
+    mut collision_event_reader: EventReader<Collision>,
+    mut s_event: EventWriter<SpawnBody>,
+) {
+    let Ok(rule_ops) = rules.get_single() else {
+        return;
+    };
+
+    let mut combined: Vec<&Entity> = Vec::new();
+
     for Collision(contacts) in collision_event_reader.read() {
         // TODO:
         // Combinations / interactions occur based on the 'Rules'
+        //
+        let Ok((c_s1, transform1, lin_v1)) = q_shape.get(contacts.entity1) else {
+            continue;
+        };
+        let Ok((c_s2, transform2, lin_v2)) = q_shape.get(contacts.entity2) else {
+            continue;
+        };
+        if combined.contains(&&contacts.entity1) || combined.contains(&&contacts.entity2) {
+            continue;
+        };
+
+        let polygons_slc = [c_s1.polygon, c_s2.polygon];
+
+        if let Some(spawn_event) = rule_ops
+            .iter()
+            .filter(|op| match op {
+                Operation::Add(s1, s2) => {
+                    polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
+                },
+                Operation::Sub(s1, s2) => {
+                    polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
+                },
+                _ => false,
+            })
+            .last()
+            .map(|op| match op {
+                Operation::Add(s1, s2) => SpawnBody {
+                    shape: Shape {
+                        polygon: s1.polygon + s2.polygon,
+                        color: s1.color.fight(s2.color),
+                    },
+                    transform: Transform::from_translation(average(&[
+                        transform1.translation,
+                        transform2.translation,
+                    ])),
+                    velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
+                },
+                Operation::Sub(s1, s2) => SpawnBody {
+                    shape: Shape {
+                        polygon: s1.polygon - s2.polygon,
+                        color: s1.color.fight(s2.color),
+                    },
+                    transform: Transform::from_translation(average(&[
+                        transform1.translation,
+                        transform2.translation,
+                    ])),
+                    velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
+                },
+                _ => unreachable!(),
+            })
+        {
+            s_event.send(spawn_event);
+            combined.append(&mut vec![&contacts.entity1, &contacts.entity2]);
+        }
     }
 }
 

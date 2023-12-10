@@ -13,7 +13,7 @@ mod card;
 mod deck;
 mod goals;
 mod hand;
-mod rules;
+pub mod rules;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash, Reflect)]
 pub enum GameState {

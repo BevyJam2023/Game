@@ -1,3 +1,4 @@
+use core::{iter::Sum, ops::Div};
 use std::f32::consts::PI;
 
 use bevy::prelude::{Transform, Vec2, Vec3};
@@ -60,4 +61,15 @@ pub fn regular_polygon_vertices(sides: usize, radius: f32) -> Vec<Vec2> {
             Vec2::new(x, y)
         })
         .collect()
+}
+
+pub fn average<T>(items: &[T]) -> T
+where
+    T: Sum + Div<f32, Output = T> + Clone + Default,
+{
+    if items.len() == 0 {
+        T::default()
+    } else {
+        items.iter().cloned().sum::<T>() / (items.len() as f32)
+    }
 }
