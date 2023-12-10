@@ -10,10 +10,9 @@ use crate::{
     AppState,
 };
 
-#[derive(Component)]
-pub struct Rule {
-    rules: Vec<Operation>,
-}
+#[derive(Component, Deref, DerefMut)]
+pub struct Rule(Vec<Operation>);
+
 #[derive(Event)]
 pub struct AddRule {
     pub rule: Operation,
@@ -34,9 +33,7 @@ impl Plugin for RulePlugin {
 pub fn spawn_rules(mut cmd: Commands, mut writer: EventWriter<SpawnCard>) {
     let rules_e = cmd
         .spawn((
-            Rule {
-                rules: generate_random_operations(3),
-            },
+            Rule(generate_random_operations(3)),
             SpatialBundle {
                 transform: Transform {
                     translation: Vec3::new(350., 400., 0.),
@@ -78,15 +75,15 @@ pub fn cycle_rule(
 ) {
     for event in reader.read() {
         let (mut rule, mut children) = q_rules.single_mut();
-        dbg!(rule.rules.len());
+        dbg!(rule.len());
 
-        if rule.rules.len() >= 3 {
-            rule.rules.remove(2);
+        if rule.len() >= 3 {
+            rule.remove(2);
             cmd.entity(*children.iter().last().unwrap()).remove_parent();
 
             cmd.entity(*children.iter().last().unwrap())
                 .despawn_recursive();
-            rule.rules.insert(0, event.rule.clone());
+            rule.insert(0, event.rule.clone());
         }
     }
 }
