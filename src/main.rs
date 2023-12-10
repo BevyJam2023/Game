@@ -4,7 +4,7 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 use bevy_tweening::*;
 use bevy_xpbd_2d::prelude::{PhysicsDebugPlugin, PhysicsPlugins};
 // use bevy_xpbd
-use whoot::GamePlugin;
+use sham::GamePlugin;
 
 fn main() {
     App::new()

@@ -9,11 +9,12 @@ pub struct LoadingPlugin;
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.add_loading_state(
-            LoadingState::new(AppState::Loading).continue_to_state(AppState::Playing),
+            LoadingState::new(AppState::Loading).continue_to_state(AppState::Menu),
         )
         // .add_collection_to_loading_state::<_, FontAssets>(GameState::Loading)
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
-        .add_collection_to_loading_state::<_, TextureAssets>(AppState::Loading);
+        .add_collection_to_loading_state::<_, TextureAssets>(AppState::Loading)
+        .add_collection_to_loading_state::<_, FontAssets>(AppState::Loading);
     }
 }
 
@@ -46,4 +47,9 @@ pub struct TextureAssets {
     pub add: Handle<Image>,
     #[asset(path = "symbols/two.png")]
     pub two: Handle<Image>,
+}
+#[derive(AssetCollection, Resource)]
+pub struct FontAssets {
+    #[asset(path = "fonts/FiraSans-Bold.ttf")]
+    pub fira: Handle<Font>,
 }
