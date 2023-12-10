@@ -15,7 +15,7 @@ pub mod config {
     pub const POLYGON_RADIUS: f32 = 80.;
 }
 
-#[derive(EnumIter, Clone, Copy)]
+#[derive(EnumIter, Clone, Copy, Debug)]
 pub enum GameColor {
     Red,
     Green,
@@ -46,14 +46,14 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-#[derive(EnumIter, Clone, Copy)]
+#[derive(EnumIter, Clone, Copy, Debug)]
 pub enum GamePolygon {
     Triangle,
     Square,
     Pentagon,
     Hexagon,
     Septagon,
-    Octogon,
+    Octagon,
     Nonagon,
     Decagon,
     Undecagon,
@@ -75,7 +75,7 @@ impl GamePolygon {
             GamePolygon::Pentagon => 5,
             GamePolygon::Hexagon => 6,
             GamePolygon::Septagon => 7,
-            GamePolygon::Octogon => 8,
+            GamePolygon::Octagon => 8,
             GamePolygon::Nonagon => 9,
             GamePolygon::Decagon => 10,
             GamePolygon::Undecagon => 11,
@@ -96,7 +96,7 @@ impl GamePolygon {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct Shape {
     pub polygon: GamePolygon,
     pub color: GameColor,
@@ -151,7 +151,7 @@ pub fn get_polygon_mesh(p: &GamePolygon, ma: &Res<ShapeAssets>) -> Handle<Mesh> 
         GamePolygon::Pentagon => ma.pentagon.clone_weak(),
         GamePolygon::Hexagon => ma.hexagon.clone_weak(),
         GamePolygon::Septagon => ma.septagon.clone_weak(),
-        GamePolygon::Octogon => ma.octogon.clone_weak(),
+        GamePolygon::Octagon => ma.octogon.clone_weak(),
         GamePolygon::Nonagon => ma.nonagon.clone_weak(),
         GamePolygon::Decagon => ma.decagon.clone_weak(),
         GamePolygon::Undecagon => ma.undecagon.clone_weak(),

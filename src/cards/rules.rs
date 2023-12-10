@@ -1,3 +1,5 @@
+use std::iter::repeat;
+
 use bevy::prelude::*;
 use bevy_tweening::Lerp;
 
@@ -33,7 +35,7 @@ impl Plugin for RulePlugin {
 pub fn spawn_rules(mut cmd: Commands, mut writer: EventWriter<SpawnCard>) {
     let rules_e = cmd
         .spawn((
-            Rule(generate_random_operations(3)),
+            Rule(repeat(Operation::None).take(3).collect()),
             SpatialBundle {
                 transform: Transform {
                     translation: Vec3::new(350., 400., 0.),

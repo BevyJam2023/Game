@@ -15,6 +15,8 @@ pub enum Operation {
     Sub(Shape, Shape),
     Add(Shape, Shape),
     Exp(Shape, u32),
+    Inc(Shape),
+    Dec(Shape),
     None,
 }
 impl Operation {
@@ -158,6 +160,8 @@ impl Operation {
                 ]
             },
             Operation::None => vec![],
+            Operation::Inc(_) => todo!(),
+            Operation::Dec(_) => todo!(),
         }
     }
 }

@@ -6,6 +6,7 @@ use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 use super::CardAction;
 use crate::{
     game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
+    goal::Goal,
     loading::TextureAssets,
     operation::Operation,
     AppState,
@@ -26,6 +27,12 @@ pub struct FlipCard {
 pub struct SpawnCard {
     pub zone_id: Entity,
     pub operation: Operation,
+    pub face_up: bool,
+}
+#[derive(Event)]
+pub struct SpawnGoalCard {
+    pub zone_id: Entity,
+    pub goal: Goal,
     pub face_up: bool,
 }
 
@@ -52,19 +59,80 @@ impl Plugin for CardPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(
             Update,
-            (flip_card, spawn_card).run_if(in_state(AppState::Playing)),
+            (flip_card, spawn_card, spawn_goal_card).run_if(in_state(AppState::Playing)),
         )
+        .add_event::<SpawnGoalCard>()
         .add_event::<FlipCard>()
         .add_event::<SpawnCard>();
     }
 }
+fn spawn_goal_card(
+    mut cmd: Commands,
+    mut reader: EventReader<SpawnGoalCard>,
+    textures: Res<TextureAssets>,
+    ma: Res<ShapeAssets>,
+    c_m: Res<ColorMaterialAssets>,
+) {
+    for event in reader.read() {
+        let operation_entity = event.goal.get_goal_entity(&mut cmd, &textures, &ma, &c_m);
+        let front = cmd
+            .spawn((
+                SpriteBundle {
+                    texture: textures.card_blank.clone(),
+                    visibility: if event.face_up {
+                        Visibility::Inherited
+                    } else {
+                        Visibility::Hidden
+                    },
+                    transform: Transform {
+                        rotation: Quat::from_euler(EulerRot::XYZ, 0., 0., 0.),
+                        ..default()
+                    },
+
+                    ..default()
+                },
+                CardFace { is_front: true },
+            ))
+            .id();
+        let back = cmd
+            .spawn((
+                SpriteBundle {
+                    visibility: if event.face_up {
+                        Visibility::Hidden
+                    } else {
+                        Visibility::Inherited
+                    },
+                    texture: textures.card_blue.clone(),
+                    ..default()
+                },
+                CardFace { is_front: false },
+            ))
+            .id();
+
+        let card_id = cmd
+            .spawn(CardBundle {
+                card: Card {
+                    back,
+                    front,
+                    face_up: event.face_up,
+                    operation: Operation::None,
+                },
+                sprite: SpriteBundle { ..default() },
+            })
+            .id();
+        cmd.entity(front).push_children(&operation_entity);
+
+        cmd.entity(card_id).push_children(&[front, back]);
+        cmd.entity(event.zone_id).push_children(&[card_id]);
+    }
+}
+
 fn spawn_card(
     mut cmd: Commands,
     mut reader: EventReader<SpawnCard>,
     textures: Res<TextureAssets>,
     ma: Res<ShapeAssets>,
     c_m: Res<ColorMaterialAssets>,
-    mut writer: EventWriter<FlipCard>,
 ) {
     for event in reader.read() {
         let operation_entity = event
