@@ -25,6 +25,7 @@ bevy = { version = "0.12.1", default-features = false, features = [
     "multi-threaded",
     "png",
     "x11",
+    # "webgl2"
 ]}
 bevy_asset_loader = "0.18.0"
 bevy_tweening = "0.9.0"

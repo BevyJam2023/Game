@@ -207,21 +207,23 @@ fn position_cards(
 pub fn draw_card(
     mut cmd: Commands,
     mut query: Query<(&Transform, &mut Deck, &mut Children), (With<Library>, Without<Card>)>,
-    mut q_cards: Query<(&Card, &mut Transform)>,
-    mut hand: Query<(Entity, &mut Hand)>,
+    mut q_cards: Query<(&Card, &mut Transform), Without<Hand>>,
+    mut hand: Query<(Entity, &mut Hand, &mut Transform), Without<Library>>,
     mut reader: EventReader<DrawCard>,
     mut flip_writer: EventWriter<FlipCard>,
     mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-            let (entity, mut hand) = hand.single_mut();
+            let (entity, mut hand, mut hand_transform) = hand.single_mut();
             let &child = children.first().unwrap();
             if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
                 cmd.entity(child).remove_parent();
 
-                card_transform.translation.x += deck_transform.translation.x;
-                card_transform.translation.y += deck_transform.translation.y;
+                card_transform.translation.x +=
+                    deck_transform.translation.x - hand_transform.translation.x;
+                card_transform.translation.y +=
+                    deck_transform.translation.y - hand_transform.translation.y;
 
                 cmd.entity(entity).push_children(&[child]);
                 flip_writer.send(FlipCard { card: child });
