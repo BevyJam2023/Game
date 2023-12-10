@@ -24,7 +24,7 @@ pub enum GameColor {
     Blue,
 }
 impl GameColor {
-    fn random_color() -> GameColor {
+    pub fn random_color() -> GameColor {
         let mut rng = rand::thread_rng();
         GameColor::iter().choose(&mut rng).unwrap()
     }
@@ -59,7 +59,7 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-#[derive(EnumIter, Clone, Copy, PartialEq, Eq)]
+#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GamePolygon {
     Triangle,
     Square,
@@ -67,10 +67,6 @@ pub enum GamePolygon {
     Hexagon,
     Heptagon,
     Octagon,
-    Nonagon,
-    Decagon,
-    Undecagon,
-    Dodecagon,
 }
 
 impl GamePolygon {
@@ -82,10 +78,6 @@ impl GamePolygon {
             GamePolygon::Hexagon => 6,
             GamePolygon::Heptagon => 7,
             GamePolygon::Octagon => 8,
-            GamePolygon::Nonagon => 9,
-            GamePolygon::Decagon => 10,
-            GamePolygon::Undecagon => 11,
-            GamePolygon::Dodecagon => 12,
         }
     }
     fn from_vertices(n: usize) -> Option<GamePolygon> {
@@ -96,14 +88,11 @@ impl GamePolygon {
             6 => Some(GamePolygon::Hexagon),
             7 => Some(GamePolygon::Heptagon),
             8 => Some(GamePolygon::Octagon),
-            9 => Some(GamePolygon::Nonagon),
-            10 => Some(GamePolygon::Decagon),
-            11 => Some(GamePolygon::Undecagon),
-            12 => Some(GamePolygon::Dodecagon),
             _ => None,
         }
     }
     pub fn create_collider(self) -> Collider {
+        // Collider::cuboid(config::POLYGON_RADIUS, config::POLYGON_RADIUS)
         Collider::convex_decomposition(
             utils::regular_polygon_vertices(self.get_vertices() as usize, config::POLYGON_RADIUS),
             (0..(self.get_vertices() as usize))
@@ -129,7 +118,7 @@ impl Add<Self> for GamePolygon {
 
     fn add(self, rhs: Self) -> Self::Output {
         GamePolygon::from_vertices(self.get_vertices() as usize + rhs.get_vertices() as usize)
-            .unwrap_or(GamePolygon::Dodecagon)
+            .unwrap_or(GamePolygon::Octagon)
     }
 }
 
@@ -137,12 +126,14 @@ impl Sub<Self> for GamePolygon {
     type Output = GamePolygon;
 
     fn sub(self, rhs: Self) -> Self::Output {
-        GamePolygon::from_vertices(self.get_vertices() as usize - rhs.get_vertices() as usize)
-            .unwrap_or(GamePolygon::Triangle)
+        GamePolygon::from_vertices(
+            ((self.get_vertices() as i8) - (rhs.get_vertices() as i8)).max(3) as usize,
+        )
+        .unwrap_or(GamePolygon::Triangle)
     }
 }
 
-#[derive(Clone, Copy, Component)]
+#[derive(Clone, Copy, Component, Debug)]
 pub struct Shape {
     pub polygon: GamePolygon,
     pub color: GameColor,
@@ -176,10 +167,6 @@ pub struct ShapeAssets {
     pub hexagon: Handle<Mesh>,
     pub heptagon: Handle<Mesh>,
     pub octagon: Handle<Mesh>,
-    pub nonagon: Handle<Mesh>,
-    pub decagon: Handle<Mesh>,
-    pub undecagon: Handle<Mesh>,
-    pub dodecagon: Handle<Mesh>,
 }
 
 #[derive(Resource, Default)]
@@ -197,10 +184,6 @@ pub fn get_polygon_mesh(p: &GamePolygon, ma: &Res<ShapeAssets>) -> Handle<Mesh> 
         GamePolygon::Hexagon => ma.hexagon.clone_weak(),
         GamePolygon::Heptagon => ma.heptagon.clone_weak(),
         GamePolygon::Octagon => ma.octagon.clone_weak(),
-        GamePolygon::Nonagon => ma.nonagon.clone_weak(),
-        GamePolygon::Decagon => ma.decagon.clone_weak(),
-        GamePolygon::Undecagon => ma.undecagon.clone_weak(),
-        GamePolygon::Dodecagon => ma.dodecagon.clone_weak(),
     }
 }
 
@@ -236,14 +219,6 @@ impl Plugin for GameShapePlugin {
                         a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 7).into());
                     s_a.octagon =
                         a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 8).into());
-                    s_a.nonagon =
-                        a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 9).into());
-                    s_a.decagon =
-                        a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 10).into());
-                    s_a.undecagon =
-                        a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 11).into());
-                    s_a.dodecagon =
-                        a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 12).into());
 
                     c_m_a.red = m.add(ColorMaterial::from(Color::RED));
                     c_m_a.green = m.add(ColorMaterial::from(Color::GREEN));

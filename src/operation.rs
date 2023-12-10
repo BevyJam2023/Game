@@ -9,7 +9,7 @@ use crate::{
     game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
     loading::TextureAssets,
 };
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum Operation {
     Mul(Shape, u32),
     Sub(Shape, Shape),

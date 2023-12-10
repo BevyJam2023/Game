@@ -11,7 +11,7 @@ fn main() {
         .insert_resource(AssetMetaCheck::Never)
         .add_plugins((
             PhysicsPlugins::default(),
-            PhysicsDebugPlugin::default(),
+            // PhysicsDebugPlugin::default(),
             TweeningPlugin,
             GamePlugin,
             DefaultPlugins.set(WindowPlugin {
