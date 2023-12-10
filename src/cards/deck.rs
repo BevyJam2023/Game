@@ -13,6 +13,7 @@ use super::{
     CardAction, GameState,
 };
 use crate::{
+    board,
     loading::TextureAssets,
     operation::{generate_random_operations, Operation},
     AppState,
@@ -96,9 +97,9 @@ fn discard_hand(
     mut cmd: Commands,
     time: Res<Time>,
     mut deck_setup: ResMut<DeckSetup>,
-    mut q_hand: Query<&Children, With<Hand>>,
-    mut q_discard: Query<(Entity, &mut Transform), (With<Discard>)>,
-    mut q_cards: Query<(Entity, &mut Transform), (Without<Discard>)>,
+    mut q_hand: Query<(&Children, &Transform), (With<Hand>, Without<Card>)>,
+    mut q_discard: Query<(Entity, &mut Transform), (With<Discard>, Without<Hand>)>,
+    mut q_cards: Query<(Entity, &mut Transform), (With<Card>, Without<Discard>)>,
     mut flip_writer: EventWriter<FlipCard>,
 ) {
     if q_hand.is_empty() {
@@ -110,7 +111,7 @@ fn discard_hand(
     deck_setup.discard_timer.tick(time.delta());
 
     if deck_setup.discard_timer.finished() {
-        let children = q_hand.single();
+        let (children, h_transform) = q_hand.single();
         let (discard_e, discard_t) = q_discard.single();
         let &child = children.first().unwrap();
         if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
@@ -118,8 +119,9 @@ fn discard_hand(
 
             cmd.entity(child).remove_parent();
 
-            card_transform.translation.x -= discard_t.translation.x;
-            card_transform.translation.y -= discard_t.translation.y;
+            card_transform.translation.x += h_transform.translation.x - discard_t.translation.x;
+            card_transform.translation.y += h_transform.translation.y - discard_t.translation.y;
+
             cmd.entity(discard_e).insert_children(0, &[child]);
         }
     }
@@ -150,10 +152,7 @@ fn spawn_discard(mut cmd: Commands) {
         Discard,
         Deck,
         SpatialBundle {
-            transform: Transform {
-                translation: Vec3::new(100., -300., 0.),
-                ..default()
-            },
+            transform: board::get_discard_transform(board::config::SIZE.into(), 190. + 50.),
             ..default()
         },
     ));
@@ -166,10 +165,8 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
             Library,
             Deck,
             SpatialBundle {
-                transform: Transform {
-                    translation: Vec3::new(-400., -300., 0.),
-                    ..default()
-                },
+                transform: board::get_deck_transform(board::config::SIZE.into(), 190. + 50.), // Card
+                // Image size plus the offset of the stack cards...
                 ..default()
             },
         ))

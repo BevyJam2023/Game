@@ -18,6 +18,7 @@ use super::{
     CardAction, GameState,
 };
 use crate::{
+    board,
     camera::{lerp, CardCamera},
     utils::{calculate_rotated_bounds, point_in_polygon},
     AppState,
@@ -69,10 +70,17 @@ impl Plugin for HandPlugin {
 
 //spawn deck when deck plugin is made
 fn spawn_hand(mut commands: Commands) {
-    commands.spawn((SpatialBundle::default(),)).insert(Hand {
-        selected: None,
-        hovered: None,
-    });
+    commands
+        .spawn(
+            (SpatialBundle {
+                transform: Transform::from_xyz(0., -(board::config::SIZE.1 + 190. + 50.) / 2., 0.),
+                ..Default::default()
+            }),
+        )
+        .insert(Hand {
+            selected: None,
+            hovered: None,
+        });
 }
 //whenever hand is updated position cards in hand that are not selected by ord using a tween
 fn position_cards(
@@ -124,15 +132,22 @@ fn position_cards(
 }
 //whenever a card is selected move it toward the target
 fn pickable_lerp(
-    mut q_hand: Query<&Hand>,
+    mut q_hand: Query<(&Hand, &Transform), (Without<Card>)>,
     mut q_cards: Query<(Entity, &Card, &mut Transform)>,
     mut q_camera: Query<(&Camera, &GlobalTransform), With<CardCamera>>,
     mut q_window: Query<&Window, With<PrimaryWindow>>,
 ) {
-    if let Some(selected) = q_hand.single().selected {
+    if let Ok((hand_comp, hand_transform)) = q_hand.get_single() {
+        let Some(selected) = hand_comp.selected else {
+            return;
+        };
+
         if let Some(pos) = q_window.single().cursor_position() {
             let (camera, camera_transform) = q_camera.single();
             if let Some(world_pos) = camera.viewport_to_world_2d(camera_transform, pos) {
+                let world_pos = world_pos
+                    - Vec2::new(hand_transform.translation.x, hand_transform.translation.y);
+
                 if let Ok((entity, card, mut transform)) = q_cards.get_mut(selected) {
                     transform.translation.x = transform.translation.x.lerp(&world_pos.x, &0.2);
                     transform.translation.y = transform.translation.y.lerp(&world_pos.y, &0.2);
@@ -171,8 +186,15 @@ fn select_card(
                         //card is 140,190
                         let half_width = 70.;
                         let half_height = 95.;
-                        let rotated_bounds =
-                            calculate_rotated_bounds(&transform, half_width, half_height);
+                        let rotated_bounds = calculate_rotated_bounds(
+                            &transform,
+                            half_width,
+                            half_height,
+                        )
+                        .map(|corner| {
+                            Vec2::new(hand_transform.translation.x, hand_transform.translation.y)
+                                + corner
+                        });
 
                         if point_in_polygon(world_pos, &rotated_bounds) {
                             hovered_entity = Some(entity);

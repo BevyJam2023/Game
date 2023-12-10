@@ -1,4 +1,5 @@
 mod board;
+mod boids;
 mod camera;
 mod cards;
 mod game_shapes;
@@ -9,6 +10,7 @@ mod utils;
 use std::default;
 
 use bevy::prelude::*;
+use bevy_xpbd_2d::resources::Gravity;
 use board::BoardPlugin;
 use camera::CameraPlugin;
 use cards::CardsPlugin;
@@ -29,10 +31,13 @@ pub enum AppState {
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<AppState>()
-            .add_plugins(CameraPlugin)
-            .add_plugins(CardsPlugin)
-            .add_plugins(LoadingPlugin)
-            .add_plugins(GameShapePlugin)
-            .add_plugins(BoardPlugin);
+            .insert_resource(Gravity(Vec2::ZERO))
+            .add_plugins((
+                CameraPlugin,
+                CardsPlugin,
+                LoadingPlugin,
+                GameShapePlugin,
+                BoardPlugin,
+            ));
     }
 }

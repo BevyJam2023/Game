@@ -36,5 +36,5 @@ bevy_pancam = "0.10.0"
 rand = "0.8.5"
 strum_macros = "0.25.3"
 strum = "0.25.0"
-
+bevy_xpbd_2d = "0.3"
 
