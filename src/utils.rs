@@ -1,3 +1,5 @@
+use std::f32::consts::PI;
+
 use bevy::prelude::{Transform, Vec2, Vec3};
 
 pub fn calculate_rotated_bounds(
@@ -42,4 +44,20 @@ pub fn point_in_polygon(point: Vec2, polygon: &[Vec2]) -> bool {
     }
 
     inside
+}
+
+pub fn regular_polygon_vertices(sides: usize, radius: f32) -> Vec<Vec2> {
+    let angle_increment = 2.0 * PI / sides as f32;
+
+    (0..sides)
+        .map(|i| {
+            let angle = i as f32 * angle_increment;
+            // NOTE:
+            // x and y are flipped so that it starts from the top (a vertices will always exist at
+            // the top of the polygon)
+            let x = radius * angle.sin();
+            let y = radius * angle.cos();
+            Vec2::new(x, y)
+        })
+        .collect()
 }
