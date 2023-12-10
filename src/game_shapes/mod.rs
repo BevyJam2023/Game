@@ -12,7 +12,7 @@ use strum_macros::EnumIter;
 use crate::{loading::TextureAssets, utils, AppState};
 
 pub mod config {
-    pub const POLYGON_RADIUS: f32 = 100.;
+    pub const POLYGON_RADIUS: f32 = 80.;
 }
 
 #[derive(EnumIter, Clone, Copy)]

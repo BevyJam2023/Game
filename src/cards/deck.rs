@@ -83,6 +83,7 @@ fn setup_decks(
         writer.send(SpawnCard {
             operation: deck_setup.library_operations[deck_setup.spawned].clone(),
             zone_id: entity,
+            face_up: false,
         });
         deck_setup.spawned += 1;
     }
@@ -121,7 +122,7 @@ fn discard_hand(
             card_transform.translation.x += h_transform.translation.x - discard_t.translation.x;
             card_transform.translation.y += h_transform.translation.y - discard_t.translation.y;
 
-            cmd.entity(discard_e).push_children(&[child]);
+            cmd.entity(discard_e).insert_children(0, &[child]);
         }
     }
 }

@@ -4,7 +4,12 @@ use bevy::{ecs::event::EventId, prelude::*};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
 use super::CardAction;
-use crate::{game_shapes::Shape, loading::TextureAssets, operation::Operation, AppState};
+use crate::{
+    game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
+    loading::TextureAssets,
+    operation::Operation,
+    AppState,
+};
 
 #[derive(Component)]
 pub struct Card {
@@ -21,6 +26,7 @@ pub struct FlipCard {
 pub struct SpawnCard {
     pub zone_id: Entity,
     pub operation: Operation,
+    pub face_up: bool,
 }
 
 #[derive(Bundle)]
@@ -52,14 +58,27 @@ impl Plugin for CardPlugin {
         .add_event::<SpawnCard>();
     }
 }
-fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: Res<TextureAssets>) {
+fn spawn_card(
+    mut cmd: Commands,
+    mut reader: EventReader<SpawnCard>,
+    textures: Res<TextureAssets>,
+    ma: Res<ShapeAssets>,
+    c_m: Res<ColorMaterialAssets>,
+    mut writer: EventWriter<FlipCard>,
+) {
     for event in reader.read() {
-        let operation_entity = event.operation.get_operation_entity(&mut cmd);
+        let operation_entity = event
+            .operation
+            .get_operation_entity(&mut cmd, &textures, &ma, &c_m);
         let front = cmd
             .spawn((
                 SpriteBundle {
-                    texture: textures.card_mul.clone(),
-                    visibility: Visibility::Hidden,
+                    texture: textures.card_blank.clone(),
+                    visibility: if event.face_up {
+                        Visibility::Inherited
+                    } else {
+                        Visibility::Hidden
+                    },
                     transform: Transform {
                         rotation: Quat::from_euler(EulerRot::XYZ, 0., PI, 0.),
                         ..default()
@@ -73,6 +92,11 @@ fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: R
         let back = cmd
             .spawn((
                 SpriteBundle {
+                    visibility: if event.face_up {
+                        Visibility::Hidden
+                    } else {
+                        Visibility::Inherited
+                    },
                     texture: textures.card_blue.clone(),
                     ..default()
                 },
@@ -85,7 +109,7 @@ fn spawn_card(mut cmd: Commands, mut reader: EventReader<SpawnCard>, textures: R
                 card: Card {
                     back,
                     front,
-                    face_up: false,
+                    face_up: event.face_up,
                     operation: event.operation.clone(),
                 },
                 sprite: SpriteBundle { ..default() },
