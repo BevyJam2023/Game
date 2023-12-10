@@ -4,12 +4,14 @@ use leafwing_input_manager::{
     Actionlike, InputManagerBundle,
 };
 
-use self::{card::CardPlugin, deck::DeckPlugin, hand::HandPlugin, rules::RulePlugin};
+use self::{
+    card::CardPlugin, deck::DeckPlugin, goals::GoalsPlugin, hand::HandPlugin, rules::RulePlugin,
+};
 use crate::AppState;
 
 mod card;
-mod criteria;
 mod deck;
+mod goals;
 mod hand;
 mod rules;
 
@@ -44,7 +46,7 @@ pub struct CardsPlugin;
 impl Plugin for CardsPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<GameState>()
-            .add_plugins((DeckPlugin, HandPlugin, CardPlugin, RulePlugin))
+            .add_plugins((DeckPlugin, HandPlugin, CardPlugin, RulePlugin, GoalsPlugin))
             .add_systems(OnEnter(AppState::Playing), setup_input)
             .add_plugins(InputManagerPlugin::<CardAction>::default());
     }

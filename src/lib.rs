@@ -3,6 +3,7 @@ mod boids;
 mod camera;
 mod cards;
 mod game_shapes;
+mod goal;
 mod loading;
 mod operation;
 mod ui;
