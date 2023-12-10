@@ -82,6 +82,7 @@ fn setup_decks(
         writer.send(SpawnCard {
             operation: deck_setup.library_operations[deck_setup.spawned].clone(),
             zone_id: entity,
+            face_up: false,
         });
         deck_setup.spawned += 1;
     }

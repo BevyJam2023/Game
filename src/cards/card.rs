@@ -26,6 +26,7 @@ pub struct FlipCard {
 pub struct SpawnCard {
     pub zone_id: Entity,
     pub operation: Operation,
+    pub face_up: bool,
 }
 
 #[derive(Bundle)]
@@ -63,6 +64,7 @@ fn spawn_card(
     textures: Res<TextureAssets>,
     ma: Res<ShapeAssets>,
     c_m: Res<ColorMaterialAssets>,
+    mut writer: EventWriter<FlipCard>,
 ) {
     for event in reader.read() {
         let operation_entity = event
@@ -72,7 +74,11 @@ fn spawn_card(
             .spawn((
                 SpriteBundle {
                     texture: textures.card_blank.clone(),
-                    visibility: Visibility::Hidden,
+                    visibility: if event.face_up {
+                        Visibility::Inherited
+                    } else {
+                        Visibility::Hidden
+                    },
                     transform: Transform {
                         rotation: Quat::from_euler(EulerRot::XYZ, 0., PI, 0.),
                         ..default()
@@ -86,6 +92,11 @@ fn spawn_card(
         let back = cmd
             .spawn((
                 SpriteBundle {
+                    visibility: if event.face_up {
+                        Visibility::Hidden
+                    } else {
+                        Visibility::Inherited
+                    },
                     texture: textures.card_blue.clone(),
                     ..default()
                 },
@@ -98,7 +109,7 @@ fn spawn_card(
                 card: Card {
                     back,
                     front,
-                    face_up: false,
+                    face_up: event.face_up,
                     operation: event.operation.clone(),
                 },
                 sprite: SpriteBundle { ..default() },
