@@ -14,6 +14,7 @@ use leafwing_input_manager::{
 use super::{
     card::{Card, FlipCard, Flipping},
     deck::{draw_card, Deck, Discard},
+    rules::{AddRule, Rule},
     CardAction, GameState,
 };
 use crate::{
@@ -149,8 +150,8 @@ fn select_card(
     mut q_window: Query<&Window, (With<PrimaryWindow>, Without<Discard>)>,
     mut q_cards: Query<(Entity, &Card, &mut Transform), Without<Hand>>,
     mut q_camera: Query<(&Camera, &GlobalTransform), With<CardCamera>>,
-    mut flip_writer: EventWriter<FlipCard>,
-    mut q_discard: Query<(Entity, &mut Deck, &Transform), (With<Discard>, Without<Card>)>,
+    mut q_rules: Query<(Entity, &Transform), (With<Rule>, Without<Card>)>,
+    mut add_rule: EventWriter<AddRule>,
 ) {
     if q_hand.is_empty() {
         return;
@@ -245,8 +246,20 @@ fn select_card(
         hand.selected = None;
     }
     if action_state.just_pressed(CardAction::Play) && hand.selected.is_some() {
-        cmd.entity(hand.selected.unwrap()).despawn_recursive();
-        cmd.insert_resource(NextState(Some(GameState::Discard)));
-        hand.selected = None;
+        let new_rule = hand.selected.unwrap();
+        let (rules_e, rules_t) = q_rules.single();
+        if let Ok((entity, card, mut card_transform)) = q_cards.get_mut(hand.selected.unwrap()) {
+            cmd.entity(entity).remove_parent();
+            card_transform.translation.x -= rules_t.translation.x;
+            card_transform.translation.y -= rules_t.translation.y;
+
+            cmd.entity(rules_e).insert_children(0, &[new_rule]);
+
+            cmd.insert_resource(NextState(Some(GameState::Discard)));
+            add_rule.send(AddRule {
+                rule: card.operation.clone(),
+            });
+            hand.selected = None;
+        }
     }
 }

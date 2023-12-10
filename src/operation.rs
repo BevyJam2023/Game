@@ -15,6 +15,7 @@ pub enum Operation {
     Sub(Shape, Shape),
     Add(Shape, Shape),
     Exp(Shape, u32),
+    None,
 }
 impl Operation {
     // pub fn get_operation_asset(textures: ResMut<TextureAssets>) -> Handle<Image> {
@@ -156,6 +157,7 @@ impl Operation {
                     .id(),
                 ]
             },
+            Operation::None => vec![],
         }
     }
 }
