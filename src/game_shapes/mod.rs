@@ -17,7 +17,7 @@ pub mod config {
     pub const POLYGON_RADIUS: f32 = 80.;
 }
 
-#[derive(EnumIter, Clone, Copy, Debug)]
+#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Debug)]
 pub enum GameColor {
     Red,
     Green,
@@ -69,6 +69,12 @@ pub enum GamePolygon {
     Octagon,
 }
 
+const STARTING_SHAPE: [GamePolygon; 3] = [
+    GamePolygon::Triangle,
+    GamePolygon::Square,
+    GamePolygon::Pentagon,
+];
+
 impl GamePolygon {
     fn get_vertices(self) -> u8 {
         match self {
@@ -102,7 +108,7 @@ impl GamePolygon {
     }
     pub fn random_polygon() -> GamePolygon {
         let mut rng = rand::thread_rng();
-        GamePolygon::iter().choose(&mut rng).unwrap()
+        STARTING_SHAPE.iter().choose(&mut rng).unwrap().clone()
     }
 }
 impl Into<RegularPolygon> for GamePolygon {
@@ -133,7 +139,7 @@ impl Sub<Self> for GamePolygon {
     }
 }
 
-#[derive(Clone, Copy, Component, Debug)]
+#[derive(Clone, Copy, Component, PartialEq, Eq, Debug)]
 pub struct Shape {
     pub polygon: GamePolygon,
     pub color: GameColor,

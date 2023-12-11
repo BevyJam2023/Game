@@ -14,7 +14,7 @@ pub enum Operation {
     Mul(Shape, u32),
     Sub(Shape, Shape),
     Add(Shape, Shape),
-    Exp(Shape, u32),
+    Sqr(Shape),
     Inc(Shape),
     Dec(Shape),
     None,
@@ -33,7 +33,7 @@ impl Operation {
             0 => Operation::Mul(Shape::random_shape(), 2),
             1 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
             2 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
-            _ => Operation::Exp(Shape::random_shape(), 2),
+            _ => Operation::Sqr(Shape::random_shape()),
         }
     }
 
@@ -137,7 +137,7 @@ impl Operation {
                         .id(),
                 ]
             },
-            Operation::Exp(s, i) => {
+            Operation::Sqr(s) => {
                 vec![
                     cmd.spawn(s.get_bundle(ma, c_m))
                         .insert(Transform {
