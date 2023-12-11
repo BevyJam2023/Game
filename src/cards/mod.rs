@@ -19,26 +19,15 @@ mod rules;
 pub enum GameState {
     #[default]
     Setup,
+    Start,
     Draw,
     Playing,
     Discard,
 }
-impl GameState {
-    pub fn next_state(&self) -> Option<Self> {
-        match self {
-            Self::Setup => Some(Self::Draw),
-            Self::Draw => Some(Self::Playing),
-            Self::Playing => Some(Self::Discard),
-            Self::Discard => Some(Self::Draw),
-        }
-    }
-}
 
 #[derive(Actionlike, PartialEq, Eq, Clone, Copy, Hash, Debug, Reflect)]
-pub enum CardAction {
+pub enum Actions {
     Select,
-    Flip,
-    Draw,
     Play,
 }
 
@@ -48,18 +37,22 @@ impl Plugin for CardsPlugin {
         app.add_state::<GameState>()
             .add_plugins((DeckPlugin, HandPlugin, CardPlugin, RulePlugin, GoalsPlugin))
             .add_systems(OnEnter(AppState::Playing), setup_input)
-            .add_plugins(InputManagerPlugin::<CardAction>::default());
+            .add_systems(Update, start_game.run_if(in_state(GameState::Start)))
+            .add_plugins(InputManagerPlugin::<Actions>::default());
     }
 }
 pub fn setup_input(mut cmd: Commands) {
-    let mut input_map = InputMap::new([
-        (MouseButton::Left, CardAction::Select),
-        (MouseButton::Right, CardAction::Flip),
-    ]);
-    input_map.insert(KeyCode::Space, CardAction::Play);
+    let mut input_map = InputMap::new([(MouseButton::Left, Actions::Select)]);
+    input_map.insert(KeyCode::Space, Actions::Play);
 
-    cmd.spawn((InputManagerBundle::<CardAction> {
+    cmd.spawn((InputManagerBundle::<Actions> {
         action_state: ActionState::default(),
         input_map,
     },));
+}
+pub fn start_game(mut cmd: Commands, mut actions: Query<&ActionState<Actions>>) {
+    let action_state = actions.single();
+    if action_state.just_pressed(Actions::Play) {
+        cmd.insert_resource(NextState(Some(GameState::Draw)));
+    }
 }
