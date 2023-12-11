@@ -123,8 +123,6 @@ fn position_cards(
             transform.translation.y = transform.translation.y.lerp(&y, &0.2);
             transform.translation.z = i as f32 * 10.;
             if !q_flipping.contains(entity) {
-                let before = transform.rotation.to_euler(EulerRot::XYZ);
-
                 transform.rotation = transform.rotation.lerp(
                     Quat::from_euler(EulerRot::XYZ, PI, 0., rot.to_radians()),
                     0.2,

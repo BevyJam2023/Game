@@ -215,23 +215,22 @@ pub fn draw_card(
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-            if children.iter().len() < 10 {
+            if children.iter().len() < 5 {
                 shuffle_discard_writer.send(ShuffleDiscard);
-            } else {
-                let (entity, mut hand, mut hand_transform) = hand.single_mut();
-                let &child = children.first().unwrap();
+            }
+            let (entity, mut hand, mut hand_transform) = hand.single_mut();
+            let &child = children.first().unwrap();
 
-                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
-                    cmd.entity(child).remove_parent();
+            if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                cmd.entity(child).remove_parent();
 
-                    card_transform.translation.x +=
-                        deck_transform.translation.x - hand_transform.translation.x;
-                    card_transform.translation.y +=
-                        deck_transform.translation.y - hand_transform.translation.y;
+                card_transform.translation.x +=
+                    deck_transform.translation.x - hand_transform.translation.x;
+                card_transform.translation.y +=
+                    deck_transform.translation.y - hand_transform.translation.y;
 
-                    cmd.entity(entity).push_children(&[child]);
-                    flip_writer.send(FlipCard { card: child });
-                }
+                cmd.entity(entity).push_children(&[child]);
+                flip_writer.send(FlipCard { card: child });
             }
         }
     }
@@ -249,6 +248,11 @@ pub fn discard_into_library(
 ) {
     for e in event.read() {
         let (library_e, library_t, mut library_d) = q_library.single_mut();
+        if q_discard.is_empty() {
+            cmd.insert_resource(NextState(Some(GameState::Scoring)));
+            return;
+        }
+
         let (discard_t, mut discard_d, children) = q_discard.single_mut();
 
         for &child in children.iter() {
