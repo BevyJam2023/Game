@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::texture::ImageSampler};
 use bevy_asset_loader::prelude::*;
 
 use crate::AppState;
@@ -10,6 +10,7 @@ impl Plugin for LoadingPlugin {
         app.add_loading_state(
             LoadingState::new(AppState::Loading).continue_to_state(AppState::Menu),
         )
+        // .add_systems(Update, set_texture_tiled)
         // .add_collection_to_loading_state::<_, FontAssets>(GameState::Loading)
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, TextureAssets>(AppState::Loading)
@@ -17,6 +18,27 @@ impl Plugin for LoadingPlugin {
         .add_collection_to_loading_state::<_, FontAssets>(AppState::Loading);
     }
 }
+
+// pub fn set_texture_tiled(
+//     mut texture_events: EventReader<AssetEvent<Image>>,
+//     mut textures: ResMut<Assets<Image>>,
+// ) {
+//     for event in texture_events.read() {
+//         match event {
+//             AssetEvent::Added { id } => {
+//                 if let Some(texture) = textures.get_mut(*id) {
+//                     texture.sampler =
+//                         ImageSampler::Descriptor(bevy::render::texture::ImageSamplerDescriptor {
+//                             address_mode_u: bevy::render::texture::ImageAddressMode::Repeat,
+//                             address_mode_v: bevy::render::texture::ImageAddressMode::Repeat,
+//                             ..Default::default()
+//                         })
+//                 }
+//             },
+//             _ => (),
+//         }
+//     }
+// }
 
 // #[derive(AssetCollection, Resource)]
 // pub struct FontAssets {
