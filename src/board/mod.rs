@@ -1,12 +1,12 @@
 use std::ops::{Deref, Sub};
 
-use bevy::{ecs::system::Command, prelude::*};
+use bevy::{ecs::system::Command, prelude::*, render::texture::ImageSampler};
 use bevy_xpbd_2d::prelude::{
-    Collider, CollidingEntities, Collision, CollisionLayers, ExternalAngularImpulse,
+    Collider, CollidingEntities, Collision, CollisionLayers, ExternalAngularImpulse, ExternalForce,
     ExternalImpulse, LinearVelocity, MassPropertiesBundle, PhysicsLayer, Restitution, RigidBody,
     SpatialQuery, SpatialQueryFilter,
 };
-use rand::Rng;
+use rand::{seq::IteratorRandom, Rng};
 
 use crate::{
     cards::{self, rules::Rule},
@@ -16,7 +16,7 @@ use crate::{
     },
     loading::TextureAssets,
     operation::Operation,
-    utils::average,
+    utils::{average, vec3_to_vec2},
     AppState,
 };
 
@@ -27,7 +27,9 @@ pub mod config {
     pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.x);
     pub const WALL_THICKNESS: f32 = 100.;
     pub const SHAPE_SCALE: f32 = 0.25;
-    pub const MAX_SPEED: f32 = 1000.;
+    pub const MAX_SPEED: f32 = 100.;
+    pub const MAX_SHAPES: u32 = 20_000;
+    pub const MAX_RADIUS: f32 = 1_000.;
 }
 
 #[derive(PhysicsLayer)]
@@ -59,7 +61,7 @@ pub struct BoardPlugin;
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnBody>()
-            .insert_resource(BoardTick(Timer::from_seconds(0.025, TimerMode::Repeating)))
+            .insert_resource(BoardTick(Timer::from_seconds(1.25, TimerMode::Repeating)))
             .add_systems(OnEnter(AppState::Playing), setup)
             .add_systems(
                 Update,
@@ -69,6 +71,7 @@ impl Plugin for BoardPlugin {
                     shape_collisions,
                     handle_delay,
                     clamp_vel,
+                    world_gravity,
                 )
                     .run_if(in_state(AppState::Playing)),
             );
@@ -78,12 +81,9 @@ impl Plugin for BoardPlugin {
 fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
     cmd.spawn((
         SpriteBundle {
-            sprite: Sprite {
-                custom_size: Some(Vec2::new(config::SIZE.x, config::SIZE.y)),
-                ..Default::default()
-            },
             texture: textures.bg.clone(),
-            transform: Transform::from_translation(config::CENTER.extend(0.)),
+            transform: Transform::from_translation(config::CENTER.extend(0.))
+                .with_scale(Vec3::splat(9999.)),
             ..Default::default()
         },
         Board,
@@ -109,29 +109,30 @@ fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
         let size = if i < 2 { sizes[0] } else { sizes[1] };
         let position = position + config::CENTER.extend(0.);
 
-        cmd.spawn((
-            RigidBody::Static,
-            Collider::cuboid(size.x, size.y),
-            Restitution::PERFECTLY_ELASTIC,
-            SpriteBundle {
-                sprite: Sprite {
-                    color: Color::WHITE,
-                    custom_size: Some(Vec2::new(size.x, size.y)),
-                    ..Default::default()
-                },
-                transform: Transform::from_translation(position),
-                ..Default::default()
-            },
-            CollisionLayers::new([Layer::Wall], [Layer::Shape]),
-        ));
+        // cmd.spawn((
+        //     RigidBody::Static,
+        //     Collider::cuboid(size.x, size.y),
+        //     Restitution::PERFECTLY_ELASTIC,
+        //     SpriteBundle {
+        //         sprite: Sprite {
+        //             color: Color::WHITE,
+        //             custom_size: Some(Vec2::new(size.x, size.y)),
+        //             ..Default::default()
+        //         },
+        //         transform: Transform::from_translation(position),
+        //         ..Default::default()
+        //     },
+        //     CollisionLayers::new([Layer::Wall], [Layer::Wall]),
+        // ));
     }
 }
 
 fn spawn_on_timer(
+    mut cmd: Commands,
     mut board_tick: ResMut<BoardTick>,
     t: Res<Time>,
     rules: Query<&Rule>,
-    q_board_shapes: Query<&Shape, With<IsOnBoard>>,
+    q_board_shapes: Query<(Entity, &Shape), With<IsOnBoard>>,
     mut e: EventWriter<SpawnBody>,
 ) {
     if board_tick.tick(t.delta()).finished() {
@@ -152,7 +153,7 @@ fn spawn_on_timer(
             })
             .map(|op| match op {
                 Operation::Mul(shape, x) => (0..((*x as usize - 1)
-                    * q_board_shapes.iter().filter(|s| s == &shape).count()))
+                    * q_board_shapes.iter().filter(|(_, s)| s == &shape).count()))
                     .into_iter()
                     .map(|_| SpawnBody {
                         shape: shape.clone(),
@@ -197,15 +198,25 @@ fn spawn_on_timer(
                     ),
                     velocity: None,
                 }],
-                Operation::Dec(_) => todo!("Not done Decrement"),
+                Operation::Dec(shape) => {
+                    if let Some((e, _)) = q_board_shapes
+                        .iter()
+                        .filter(|(_, s)| s == &shape)
+                        .choose(&mut rng_thread)
+                    {
+                        cmd.entity(e).despawn_recursive();
+                    }
+                    vec![]
+                },
                 _ => unreachable!(),
             })
             .flatten()
             .collect();
 
-        for ev in spawn_event {
-            e.send(ev);
-        }
+        e.send_batch(spawn_event);
+        // for ev in spawn_event {
+        //     e.send(ev);
+        // }
         // e.send_batch(spawn_event);
     }
 
@@ -229,13 +240,22 @@ fn spawn_on_timer(
 fn spawn_bodies(
     mut cmd: Commands,
     mut reader: EventReader<SpawnBody>,
+    q_board: Query<(), With<IsOnBoard>>,
     poly_colliders: Res<PolygonColliders>,
     mesh: Res<ShapeAssets>,
     color_mat: Res<ColorMaterialAssets>,
 ) {
+    let frame_num = q_board.iter().collect::<Vec<()>>().len();
+    println!("on board {}", frame_num);
+
     let mut rng_thread = rand::thread_rng();
 
-    for event in reader.read() {
+    for (i, event) in reader.read().enumerate() {
+        if (i + frame_num) as u32 >= config::MAX_SHAPES {
+            println!("Max reached");
+            return;
+        };
+
         cmd.spawn((
             event.shape.get_bundle(&mesh, &color_mat),
             poly_colliders.get(&event.shape.polygon).unwrap().clone(),
@@ -249,8 +269,19 @@ fn spawn_bodies(
             IsOnBoard,
             CollisionLayers::new([Layer::Shape], [Layer::Wall]),
             AwaitNoCollision(300),
+            ExternalForce::ZERO,
         ))
         .insert(event.transform.with_scale(Vec3::splat(config::SHAPE_SCALE)));
+    }
+}
+
+fn world_gravity(mut q_central_force: Query<(&mut ExternalForce, &Transform), With<IsOnBoard>>) {
+    for (mut f, t) in q_central_force.iter_mut() {
+        let v_to_center = config::CENTER - t.translation.truncate();
+
+        let distance_to_center = t.translation.truncate().distance_squared(config::CENTER);
+
+        f.set_force(distance_to_center * v_to_center.normalize_or_zero());
     }
 }
 
@@ -295,9 +326,10 @@ fn handle_delay(
 }
 
 fn shape_collisions(
+    mut cmd: Commands,
     rules: Query<&Rule>,
-    q_shape: Query<(&Shape, &Transform, &LinearVelocity)>,
-    mut collision_event_reader: EventReader<Collision>,
+    q_shape: Query<(Entity, &Shape, &Transform, &LinearVelocity), With<IsOnBoard>>,
+    // mut collision_event_reader: EventReader<Collision>,
     mut s_event: EventWriter<SpawnBody>,
 ) {
     let Ok(rule_ops) = rules.get_single() else {
@@ -306,72 +338,131 @@ fn shape_collisions(
 
     dbg!(q_shape
         .iter()
-        .collect::<Vec<(&Shape, &Transform, &LinearVelocity)>>()
+        .collect::<Vec<(Entity, &Shape, &Transform, &LinearVelocity)>>()
         .len());
-
-    // dbg!(rule_ops.deref());
 
     let mut combined: Vec<&Entity> = Vec::new();
 
-    for Collision(contacts) in collision_event_reader.read() {
-        // TODO:
-        // Combinations / interactions occur based on the 'Rules'
-        //
-        let Ok((c_s1, transform1, lin_v1)) = q_shape.get(contacts.entity1) else {
-            continue;
-        };
-        let Ok((c_s2, transform2, lin_v2)) = q_shape.get(contacts.entity2) else {
-            continue;
-        };
-        if combined.contains(&&contacts.entity1) || combined.contains(&&contacts.entity2) {
+    let translations: Vec<(Entity, &Shape, Vec3, Vec2)> = q_shape
+        .iter()
+        .map(|(e, s, t, v)| (e, s, t.translation, v.0))
+        .collect();
+
+    for (ent, s, t, v) in translations.iter() {
+        if combined.contains(&&ent) {
             continue;
         };
 
-        let polygons_slc = [c_s1.polygon, c_s2.polygon];
-
-        if let Some(spawn_event) = rule_ops
+        if let Some((o_ent, o_s, o_t, o_v)) = translations
             .iter()
-            .filter(|op| match op {
-                Operation::Add(s1, s2) => {
-                    polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
-                },
-                Operation::Sub(s1, s2) => {
-                    polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
-                },
-                _ => false,
+            .filter(|(o_ent, _, t, _)| {
+                !combined.contains(&o_ent)
+                    && (ent != o_ent)
+                    && (t.distance_squared(*t)
+                        < (2. * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
             })
-            .last()
-            .map(|op| match op {
-                Operation::Add(s1, s2) => SpawnBody {
-                    shape: Shape {
-                        polygon: s1.polygon + s2.polygon,
-                        color: s1.color.fight(s2.color),
-                    },
-                    transform: Transform::from_translation(average(&[
-                        transform1.translation,
-                        transform2.translation,
-                    ])),
-                    velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
-                },
-                Operation::Sub(s1, s2) => SpawnBody {
-                    shape: Shape {
-                        polygon: s1.polygon - s2.polygon,
-                        color: s1.color.fight(s2.color),
-                    },
-                    transform: Transform::from_translation(average(&[
-                        transform1.translation,
-                        transform2.translation,
-                    ])),
-                    velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
-                },
-                _ => unreachable!(),
-            })
+            .take(1)
+            .collect::<Vec<&(Entity, &Shape, Vec3, Vec2)>>()
+            .first()
         {
-            println!("big collision");
-            s_event.send(spawn_event);
-            combined.append(&mut vec![&contacts.entity1, &contacts.entity2]);
+            let shapes_slc = [*s, *o_s];
+
+            if let Some(spawn_event) = rule_ops
+                .iter()
+                .filter(|op| match op {
+                    Operation::Add(s1, s2) => shapes_slc.contains(&s1) && shapes_slc.contains(&s2),
+                    Operation::Sub(s1, s2) => shapes_slc.contains(&s1) && shapes_slc.contains(&s2),
+                    _ => false,
+                })
+                .take(1)
+                .collect::<Vec<&Operation>>()
+                .first()
+                .map(|op| match op {
+                    Operation::Add(s1, s2) => SpawnBody {
+                        shape: Shape {
+                            polygon: s1.polygon + s2.polygon,
+                            color: s1.color.fight(s2.color),
+                        },
+                        transform: Transform::from_translation(average(&[*t, *o_t])),
+                        velocity: Some(LinearVelocity(average(&[*v, *o_v]))),
+                    },
+                    Operation::Sub(s1, s2) => SpawnBody {
+                        shape: Shape {
+                            polygon: s1.polygon - s2.polygon,
+                            color: s1.color.fight(s2.color),
+                        },
+                        transform: Transform::from_translation(average(&[*t, *o_t])),
+                        velocity: Some(LinearVelocity(average(&[*v, *o_v]))),
+                    },
+                    _ => unreachable!(),
+                })
+            {
+                dbg!("combined", s, o_s, "into shape", spawn_event.shape);
+                s_event.send(spawn_event);
+                combined.append(&mut vec![ent, o_ent]);
+
+                cmd.entity(*ent).despawn_recursive();
+                cmd.entity(*o_ent).despawn_recursive();
+            }
         }
     }
+    //
+    // // dbg!(rule_ops.deref());
+    //
+    //
+    // for Collision(contacts) in collision_event_reader.read() {
+    //     // TODO:
+    //     // Combinations / interactions occur based on the 'Rules'
+    //     //
+    //     if combined.contains(&&contacts.entity1) || combined.contains(&&contacts.entity2) {
+    //         continue;
+    //     };
+    //
+    //     let polygons_slc = [c_s1.polygon, c_s2.polygon];
+    //
+    //     if let Some(spawn_event) = rule_ops
+    //         .iter()
+    //         .filter(|op| match op {
+    //             Operation::Add(s1, s2) => {
+    //                 polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
+    //             },
+    //             Operation::Sub(s1, s2) => {
+    //                 polygons_slc.contains(&s1.polygon) && polygons_slc.contains(&s2.polygon)
+    //             },
+    //             _ => false,
+    //         })
+    //         .last()
+    //         .map(|op| match op {
+    //             Operation::Add(s1, s2) => SpawnBody {
+    //                 shape: Shape {
+    //                     polygon: s1.polygon + s2.polygon,
+    //                     color: s1.color.fight(s2.color),
+    //                 },
+    //                 transform: Transform::from_translation(average(&[
+    //                     transform1.translation,
+    //                     transform2.translation,
+    //                 ])),
+    //                 velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
+    //             },
+    //             Operation::Sub(s1, s2) => SpawnBody {
+    //                 shape: Shape {
+    //                     polygon: s1.polygon - s2.polygon,
+    //                     color: s1.color.fight(s2.color),
+    //                 },
+    //                 transform: Transform::from_translation(average(&[
+    //                     transform1.translation,
+    //                     transform2.translation,
+    //                 ])),
+    //                 velocity: Some(LinearVelocity(average(&[*lin_v1.deref(), *lin_v2.deref()]))),
+    //             },
+    //             _ => unreachable!(),
+    //         })
+    //     {
+    //         println!("big collision");
+    //         s_event.send(spawn_event);
+    //         combined.append(&mut vec![&contacts.entity1, &contacts.entity2]);
+    //     }
+    // }
 
     // dbg!(combined.deref());
 }

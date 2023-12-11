@@ -84,3 +84,7 @@ pub fn point_in_board(x: f32, y: f32, size: Vec2, center: Vec2) -> bool {
 
     min_x <= x && x <= max_x && min_y <= y && y <= max_y
 }
+
+pub fn vec3_to_vec2(v: Vec3) -> Vec2 {
+    Vec2::new(v.x, v.y)
+}
