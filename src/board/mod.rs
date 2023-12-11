@@ -23,7 +23,7 @@ use crate::{
 pub mod config {
     use super::Vec2;
 
-    pub const SIZE: Vec2 = Vec2::new(10000., 10000.);
+    pub const SIZE: Vec2 = Vec2::new(1000., 1000.);
     pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.x);
     pub const WALL_THICKNESS: f32 = 100.;
     pub const SHAPE_SCALE: f32 = 0.25;
@@ -82,7 +82,7 @@ fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
     cmd.spawn((
         SpriteBundle {
             texture: textures.bg.clone(),
-            transform: Transform::from_translation(config::CENTER.extend(0.))
+            transform: Transform::from_translation(config::CENTER.extend(-10.))
                 .with_scale(Vec3::splat(9999.)),
             ..Default::default()
         },
@@ -220,21 +220,21 @@ fn spawn_on_timer(
         // e.send_batch(spawn_event);
     }
 
-    let mut rng_thread = rand::thread_rng();
-    for i in (0..100) {
-        e.send(SpawnBody {
-            shape: Shape::random_shape(),
-            transform: Transform::from_translation(
-                config::CENTER.extend(0.)
-                    + Vec3::new(
-                        rng_thread.gen_range(-300..=300) as f32,
-                        rng_thread.gen_range(-300..=300) as f32,
-                        10.,
-                    ),
-            ),
-            velocity: None,
-        });
-    }
+    // let mut rng_thread = rand::thread_rng();
+    // for i in (0..100) {
+    //     e.send(SpawnBody {
+    //         shape: Shape::random_shape(),
+    //         transform: Transform::from_translation(
+    //             config::CENTER.extend(0.)
+    //                 + Vec3::new(
+    //                     rng_thread.gen_range(-300..=300) as f32,
+    //                     rng_thread.gen_range(-300..=300) as f32,
+    //                     10.,
+    //                 ),
+    //         ),
+    //         velocity: None,
+    //     });
+    // }
 }
 
 fn spawn_bodies(
@@ -359,7 +359,7 @@ fn shape_collisions(
                 !combined.contains(&o_ent)
                     && (ent != o_ent)
                     && (t.distance_squared(*t)
-                        < (2. * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
+                        < (1.05 * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
             })
             .take(1)
             .collect::<Vec<&(Entity, &Shape, Vec3, Vec2)>>()
