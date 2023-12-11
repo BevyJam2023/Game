@@ -23,7 +23,7 @@ use crate::{
 pub mod config {
     use super::Vec2;
 
-    pub const SIZE: Vec2 = Vec2::new(10000., 10000.);
+    pub const SIZE: Vec2 = Vec2::new(1000., 1000.);
     pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.x);
     pub const WALL_THICKNESS: f32 = 100.;
     pub const SHAPE_SCALE: f32 = 0.25;

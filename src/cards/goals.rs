@@ -33,7 +33,7 @@ pub fn spawn_goals(mut cmd: Commands, mut writer: EventWriter<SpawnGoalCard>) {
             Goals(goals.clone()),
             SpatialBundle {
                 transform: Transform {
-                    translation: Vec3::new(-200., 800., 0.),
+                    translation: Vec3::new(-1100., -600., 0.),
                     ..default()
                 },
                 ..default()

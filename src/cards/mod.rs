@@ -7,15 +7,19 @@ use leafwing_input_manager::{
 };
 
 use self::{
-    card::CardPlugin, deck::DeckPlugin, goals::GoalsPlugin, hand::HandPlugin, rules::RulePlugin,
+    card::CardPlugin,
+    deck::DeckPlugin,
+    goals::{Goals, GoalsPlugin},
+    hand::HandPlugin,
+    rules::RulePlugin,
 };
 use super::ui::StartText;
-use crate::AppState;
+use crate::{board::IsOnBoard, game_shapes::Shape, AppState};
 
-mod card;
-mod deck;
-mod goals;
-mod hand;
+pub mod card;
+pub mod deck;
+pub mod goals;
+pub mod hand;
 pub mod rules;
 
 #[derive(States, Default, Clone, Eq, PartialEq, Debug, Hash, Reflect)]
@@ -38,11 +42,22 @@ pub enum Actions {
 pub struct GameTimer {
     pub timer: Timer,
 }
+#[derive(Resource)]
+pub struct Score {
+    pub score: u32,
+    pub base_score: u32,
+    pub goal_status: Vec<bool>,
+}
 
 pub struct CardsPlugin;
 impl Plugin for CardsPlugin {
     fn build(&self, app: &mut App) {
         app.add_state::<GameState>()
+            .insert_resource(Score {
+                score: 0,
+                base_score: 0,
+                goal_status: vec![false, false, false],
+            })
             .insert_resource(GameTimer {
                 timer: Timer::new(Duration::from_secs(120), TimerMode::Once),
             })

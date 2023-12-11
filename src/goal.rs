@@ -9,8 +9,8 @@ use crate::{
 };
 #[derive(Clone, Debug)]
 pub struct Goal {
-    s1: Shape,
-    s2: Shape,
+    pub s1: Shape,
+    pub s2: Shape,
 }
 impl Goal {
     pub fn random_goal() -> Self {

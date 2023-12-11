@@ -56,14 +56,24 @@ pub fn spawn_hud(mut cmd: Commands, fonts: Res<FontAssets>) {
                         ..default()
                     },
                     text: Text {
-                        sections: vec![TextSection::new(
-                            "1:00",
-                            TextStyle {
-                                font: fonts.fira.clone(),
-                                font_size: 32.0,
-                                color: Color::WHITE,
-                            },
-                        )],
+                        sections: vec![
+                            TextSection::new(
+                                "Time Left: ",
+                                TextStyle {
+                                    font: fonts.fira.clone(),
+                                    font_size: 32.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                            TextSection::new(
+                                "",
+                                TextStyle {
+                                    font: fonts.fira.clone(),
+                                    font_size: 32.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                        ],
                         alignment: TextAlignment::Center,
 
                         ..default()
@@ -73,60 +83,54 @@ pub fn spawn_hud(mut cmd: Commands, fonts: Res<FontAssets>) {
                 },
                 TimerText,
             ));
-            parent.spawn((
-                TextBundle {
-                    style: Style {
-                        top: Val::Px(30.),
-                        right: Val::Px(100.),
-                        position_type: PositionType::Absolute,
-
-                        ..default()
-                    },
-                    text: Text {
-                        sections: vec![TextSection::new(
-                            "Goals",
-                            TextStyle {
-                                font: fonts.fira.clone(),
-                                font_size: 32.0,
-                                color: Color::WHITE,
-                            },
-                        )],
-                        alignment: TextAlignment::Center,
-
-                        ..default()
-                    },
+            parent.spawn((TextBundle {
+                style: Style {
+                    bottom: Val::Px(150.),
+                    right: Val::Px(150.),
+                    position_type: PositionType::Absolute,
 
                     ..default()
                 },
-                TimerText,
-            ));
-            parent.spawn((
-                TextBundle {
-                    style: Style {
-                        top: Val::Px(200.),
-                        right: Val::Px(100.),
-                        position_type: PositionType::Absolute,
-
-                        ..default()
-                    },
-                    text: Text {
-                        sections: vec![TextSection::new(
-                            "Rules",
-                            TextStyle {
-                                font: fonts.fira.clone(),
-                                font_size: 32.0,
-                                color: Color::WHITE,
-                            },
-                        )],
-                        alignment: TextAlignment::Center,
-
-                        ..default()
-                    },
+                text: Text {
+                    sections: vec![TextSection::new(
+                        "Goals",
+                        TextStyle {
+                            font: fonts.fira.clone(),
+                            font_size: 32.0,
+                            color: Color::WHITE,
+                        },
+                    )],
+                    alignment: TextAlignment::Center,
 
                     ..default()
                 },
-                TimerText,
-            ));
+
+                ..default()
+            },));
+            parent.spawn((TextBundle {
+                style: Style {
+                    bottom: Val::Px(150.),
+                    left: Val::Px(150.),
+                    position_type: PositionType::Absolute,
+
+                    ..default()
+                },
+                text: Text {
+                    sections: vec![TextSection::new(
+                        "Rules",
+                        TextStyle {
+                            font: fonts.fira.clone(),
+                            font_size: 32.0,
+                            color: Color::WHITE,
+                        },
+                    )],
+                    alignment: TextAlignment::Center,
+
+                    ..default()
+                },
+
+                ..default()
+            },));
 
             parent.spawn((
                 TextBundle {
@@ -161,7 +165,7 @@ pub fn update_timer_text(
     mut q_text: Query<(&mut Text), (With<TimerText>)>,
 ) {
     if let Ok(mut text) = q_text.get_single_mut() {
-        text.sections[0].value =
+        text.sections[1].value =
             (120 - game_timer.timer.elapsed_secs().round() as u32).to_string() + "s";
     }
 }
