@@ -27,7 +27,7 @@ pub mod config {
     pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.x);
     pub const WALL_THICKNESS: f32 = 100.;
     pub const SHAPE_SCALE: f32 = 0.25;
-    pub const MAX_SPEED: f32 = 1000.;
+    pub const MAX_SPEED: f32 = 100.;
 }
 
 #[derive(PhysicsLayer)]
@@ -209,21 +209,23 @@ fn spawn_on_timer(
         // e.send_batch(spawn_event);
     }
 
-    let mut rng_thread = rand::thread_rng();
-    for i in (0..100) {
-        e.send(SpawnBody {
-            shape: Shape::random_shape(),
-            transform: Transform::from_translation(
-                config::CENTER.extend(0.)
-                    + Vec3::new(
-                        rng_thread.gen_range(-300..=300) as f32,
-                        rng_thread.gen_range(-300..=300) as f32,
-                        10.,
-                    ),
-            ),
-            velocity: None,
-        });
-    }
+    // NOTE:
+    // Here for spawning many entities quickly...
+    // let mut rng_thread = rand::thread_rng();
+    // for i in (0..100) {
+    //     e.send(SpawnBody {
+    //         shape: Shape::random_shape(),
+    //         transform: Transform::from_translation(
+    //             config::CENTER.extend(0.)
+    //                 + Vec3::new(
+    //                     rng_thread.gen_range(-300..=300) as f32,
+    //                     rng_thread.gen_range(-300..=300) as f32,
+    //                     10.,
+    //                 ),
+    //         ),
+    //         velocity: None,
+    //     });
+    // }
 }
 
 fn spawn_bodies(
