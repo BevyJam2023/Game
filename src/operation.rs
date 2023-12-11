@@ -28,14 +28,13 @@ impl Operation {
     pub fn random_operation() -> Operation {
         let mut rng = rand::thread_rng();
 
-        let o = rng.gen_range(0..5);
+        let o = rng.gen_range(0..100);
         match o {
-            0 => Operation::Mul(Shape::random_shape(), 2),
-            1 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
-            2 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
-            // 3 => Operation::Sqr(Shape::random_shape()),
-            3 => Operation::Inc(Shape::random_shape()),
-            4 => Operation::Dec(Shape::random_shape()),
+            0..=9 => Operation::Mul(Shape::random_shape(), 2),
+            10..=19 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
+            20..=39 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
+            40..=69 => Operation::Inc(Shape::random_shape()),
+            70..=89 => Operation::Dec(Shape::random_shape()),
             _ => Operation::None,
         }
     }

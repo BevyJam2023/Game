@@ -60,6 +60,7 @@ impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Playing), spawn_hand)
             .add_systems(Update, component_animator_system::<Transform>)
+            .add_systems(OnExit(AppState::Playing), reset_hand)
             .add_systems(
                 Update,
                 (
@@ -289,4 +290,7 @@ fn select_card(
 
         hand.selected = None;
     }
+}
+pub fn reset_hand(mut cmd: Commands, q_hand: Query<Entity, With<Hand>>) {
+    cmd.entity(q_hand.single()).despawn_recursive();
 }

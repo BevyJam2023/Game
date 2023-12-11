@@ -45,6 +45,7 @@ impl Plugin for DeckPlugin {
         app.add_systems(OnEnter(AppState::Playing), (spawn_deck, spawn_discard))
             .add_event::<DrawCard>()
             .add_event::<ShuffleDiscard>()
+            .add_systems(OnExit(AppState::Playing), reset_deck)
             .add_systems(
                 Update,
                 (
@@ -64,8 +65,19 @@ impl Plugin for DeckPlugin {
                 discard_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 spawned: 0,
                 hand_size: 5,
-                library_operations: generate_random_operations(60),
+                library_operations: generate_random_operations(80),
             });
+    }
+}
+pub fn reset_deck(
+    mut cmd: Commands,
+    mut deck_setup: ResMut<DeckSetup>,
+    q_decks: Query<Entity, With<Deck>>,
+) {
+    deck_setup.spawned = 0;
+    deck_setup.library_operations = generate_random_operations(80);
+    for d in q_decks.iter() {
+        cmd.entity(d).despawn_recursive();
     }
 }
 fn setup_decks(
@@ -80,6 +92,7 @@ fn setup_decks(
     let entity = q_library.single();
     deck_setup.deck_setup_timer.tick(time.delta());
     if deck_setup.deck_setup_timer.finished() {
+        deck_setup.deck_setup_timer.reset();
         writer.send(SpawnCard {
             operation: deck_setup.library_operations[deck_setup.spawned].clone(),
             zone_id: entity,
