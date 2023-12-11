@@ -9,12 +9,12 @@ use bevy_xpbd_2d::prelude::{
 use rand::{seq::IteratorRandom, Rng};
 
 use crate::{
-    cards::{self, rules::Rule, GameState},
+    cards::{self, deck::reset_deck, rules::Rule, GameState},
     game_shapes::{
         self, config::POLYGON_RADIUS, ColorMaterialAssets, GameColor, GamePolygon,
         PolygonColliders, Shape, ShapeAssets,
     },
-    loading::TextureAssets,
+    loading::{SoundAssets, TextureAssets},
     operation::Operation,
     utils::{average, vec3_to_vec2},
     AppState,
@@ -63,6 +63,7 @@ impl Plugin for BoardPlugin {
         app.add_event::<SpawnBody>()
             .insert_resource(BoardTick(Timer::from_seconds(1.25, TimerMode::Repeating)))
             .add_systems(OnEnter(AppState::Playing), setup)
+            .add_systems(OnExit(AppState::Playing), despawn_shapes)
             .add_systems(
                 Update,
                 (
@@ -245,9 +246,9 @@ fn spawn_bodies(
     poly_colliders: Res<PolygonColliders>,
     mesh: Res<ShapeAssets>,
     color_mat: Res<ColorMaterialAssets>,
+    r_sound: Res<SoundAssets>,
 ) {
     let frame_num = q_board.iter().collect::<Vec<()>>().len();
-    println!("on board {}", frame_num);
 
     let mut rng_thread = rand::thread_rng();
 
@@ -273,6 +274,20 @@ fn spawn_bodies(
             ExternalForce::ZERO,
         ))
         .insert(event.transform.with_scale(Vec3::splat(config::SHAPE_SCALE)));
+
+        cmd.spawn(AudioBundle {
+            source: r_sound.spawn.clone_weak(),
+            settings: PlaybackSettings {
+                mode: bevy::audio::PlaybackMode::Remove,
+                ..default()
+            },
+        });
+    }
+}
+
+fn despawn_shapes(mut c: Commands, q_board_shapes: Query<(Entity, &Shape), With<IsOnBoard>>) {
+    for (e, _) in q_board_shapes.iter() {
+        c.entity(e).despawn_recursive();
     }
 }
 
