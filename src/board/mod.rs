@@ -69,7 +69,7 @@ impl Plugin for BoardPlugin {
                 (
                     spawn_bodies,
                     spawn_on_timer,
-                    shape_collisions,
+                    shape_collisions.after(spawn_on_timer),
                     handle_delay,
                     clamp_vel,
                     world_gravity,
@@ -258,6 +258,16 @@ fn spawn_bodies(
             return;
         };
 
+        if i <= 5 {
+            cmd.spawn(AudioBundle {
+                source: r_sound.spawn.clone_weak(),
+                settings: PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Remove,
+                    ..default()
+                },
+            });
+        }
+
         cmd.spawn((
             event.shape.get_bundle(&mesh, &color_mat),
             poly_colliders.get(&event.shape.polygon).unwrap().clone(),
@@ -274,14 +284,6 @@ fn spawn_bodies(
             ExternalForce::ZERO,
         ))
         .insert(event.transform.with_scale(Vec3::splat(config::SHAPE_SCALE)));
-
-        cmd.spawn(AudioBundle {
-            source: r_sound.spawn.clone_weak(),
-            settings: PlaybackSettings {
-                mode: bevy::audio::PlaybackMode::Remove,
-                ..default()
-            },
-        });
     }
 }
 
@@ -366,11 +368,11 @@ fn shape_collisions(
 
         if let Some((o_ent, o_s, o_t, o_v)) = translations
             .iter()
-            .filter(|(o_ent, _, t, _)| {
+            .filter(|(o_ent, _, o_t, _)| {
                 !combined.contains(&o_ent)
                     && (ent != o_ent)
-                    && (t.distance_squared(*t)
-                        < (1.05 * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
+                    && (t.distance_squared(*o_t)
+                        <= (2. * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
             })
             .take(1)
             .collect::<Vec<&(Entity, &Shape, Vec3, Vec2)>>()
@@ -408,7 +410,7 @@ fn shape_collisions(
                     _ => unreachable!(),
                 })
             {
-                dbg!("combined", s, o_s, "into shape", spawn_event.shape);
+                // dbg!("combined", s, o_s, "into shape", spawn_event.shape);
                 s_event.send(spawn_event);
                 combined.append(&mut vec![ent, o_ent]);
 
