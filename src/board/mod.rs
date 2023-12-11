@@ -13,7 +13,7 @@ use crate::{
 pub mod config {
     use super::Vec2;
 
-    pub const SIZE: (f32, f32) = (1000., 1000.);
+    pub const SIZE: Vec2 = Vec2::new(1000., 1000.);
     pub const CENTER: Vec2 = Vec2::new(0., 200.);
     pub const WALL_THICKNESS: f32 = 10.;
 }
@@ -43,17 +43,17 @@ fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
     cmd.spawn((
         SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(config::SIZE.0, config::SIZE.1)),
+                custom_size: Some(Vec2::new(config::SIZE.x, config::SIZE.y)),
                 ..Default::default()
             },
-            texture: textures.card_red.clone(),
+            texture: textures.bg.clone(),
             transform: Transform::from_translation(config::CENTER.extend(0.)),
             ..Default::default()
         },
         Board,
     ));
 
-    let side_length = config::SIZE.0;
+    let side_length = config::SIZE.x;
 
     // Wall positions (assuming the center of the square is at the origin)
     let positions = [

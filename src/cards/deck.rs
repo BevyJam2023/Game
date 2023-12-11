@@ -215,21 +215,24 @@ pub fn draw_card(
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-            let (entity, mut hand, mut hand_transform) = hand.single_mut();
-            let &child = children.first().unwrap();
-            if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
-                cmd.entity(child).remove_parent();
+            if children.iter().len() < 10 {
+                shuffle_discard_writer.send(ShuffleDiscard);
+            } else {
+                let (entity, mut hand, mut hand_transform) = hand.single_mut();
+                let &child = children.first().unwrap();
 
-                card_transform.translation.x +=
-                    deck_transform.translation.x - hand_transform.translation.x;
-                card_transform.translation.y +=
-                    deck_transform.translation.y - hand_transform.translation.y;
+                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                    cmd.entity(child).remove_parent();
 
-                cmd.entity(entity).push_children(&[child]);
-                flip_writer.send(FlipCard { card: child });
+                    card_transform.translation.x +=
+                        deck_transform.translation.x - hand_transform.translation.x;
+                    card_transform.translation.y +=
+                        deck_transform.translation.y - hand_transform.translation.y;
+
+                    cmd.entity(entity).push_children(&[child]);
+                    flip_writer.send(FlipCard { card: child });
+                }
             }
-        } else {
-            shuffle_discard_writer.send(ShuffleDiscard);
         }
     }
 }
