@@ -1,4 +1,4 @@
-use std::iter::repeat;
+use std::{f32::consts::PI, iter::repeat};
 
 use bevy::prelude::*;
 use bevy_tweening::Lerp;
@@ -67,6 +67,9 @@ pub fn position_rules(
             transform.translation.y = transform.translation.y.lerp(&0., &0.2);
 
             transform.translation.z = 20.;
+            transform.rotation = transform
+                .rotation
+                .lerp(Quat::from_euler(EulerRot::XYZ, 0., PI, 0.), 0.2);
         }
     }
 }
