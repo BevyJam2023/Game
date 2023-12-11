@@ -1,3 +1,4 @@
+use core::{iter::Sum, ops::Div};
 use std::f32::consts::PI;
 
 use bevy::prelude::{Transform, Vec2, Vec3};
@@ -61,6 +62,18 @@ pub fn regular_polygon_vertices(sides: usize, radius: f32) -> Vec<Vec2> {
         })
         .collect()
 }
+
+pub fn average<T>(items: &[T]) -> T
+where
+    T: Sum + Div<f32, Output = T> + Clone + Default,
+{
+    if items.len() == 0 {
+        T::default()
+    } else {
+        items.iter().cloned().sum::<T>() / (items.len() as f32)
+    }
+}
+
 pub fn point_in_board(x: f32, y: f32, size: Vec2, center: Vec2) -> bool {
     let half_width = size.x / 2.0;
     let half_height = size.y / 2.0;

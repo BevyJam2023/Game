@@ -38,7 +38,7 @@ pub fn spawn_rules(mut cmd: Commands, mut writer: EventWriter<SpawnCard>) {
             Rule(repeat(Operation::None).take(3).collect()),
             SpatialBundle {
                 transform: Transform {
-                    translation: Vec3::new(350., 400., 0.),
+                    translation: Vec3::new(650., 400., 0.),
                     ..default()
                 },
                 ..default()
