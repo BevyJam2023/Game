@@ -37,9 +37,11 @@ impl Plugin for ScoreUIPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(GameState::Scoring), (spawn_scoreboard))
             .add_systems(Update, (press_menu).run_if(in_state(GameState::Scoring)))
-            .add_systems(Update, component_animator_system::<Text>);
+            .add_systems(Update, component_animator_system::<Text>)
+            .add_systems(OnExit(GameState::Scoring), despawn_scoreboard);
     }
 }
+
 pub fn spawn_scoreboard(
     mut cmd: Commands,
     q_goals: Query<&Goals>,
@@ -47,7 +49,6 @@ pub fn spawn_scoreboard(
     fonts: Res<FontAssets>,
     mut score: ResMut<Score>,
 ) {
-    score.base_score = 1000;
     for shape in q_shapes.iter() {
         score.base_score += 1;
     }
@@ -70,15 +71,16 @@ pub fn spawn_scoreboard(
             score.score *= 2;
         }
     }
+    score.score += score.cards_played * 100;
     let scoreboard = cmd
         .spawn((
             NodeBundle {
                 background_color: BackgroundColor(Color::rgb(153. / 255., 51. / 255., 0.)),
                 style: Style {
-                    top: Val::Percent(25.0),
+                    top: Val::Percent(15.0),
                     left: Val::Percent(31.25),
                     width: Val::Percent(37.5),
-                    height: Val::Percent(40.),
+                    height: Val::Percent(70.),
                     padding: UiRect::all(Val::Px(30.)),
 
                     flex_direction: FlexDirection::Column,
@@ -122,6 +124,16 @@ pub fn spawn_scoreboard(
                     end: score.base_score,
                 },
             );
+            let card_played_tween =
+                Sequence::new(vec![Delay::new(Duration::from_secs(3))]).then(Tween::new(
+                    EaseFunction::QuadraticInOut,
+                    Duration::from_secs(2),
+                    CountUpLens {
+                        start: 0,
+                        end: score.cards_played,
+                    },
+                ));
+
             let goals_achieved_tween = Sequence::new(vec![Delay::new(Duration::from_secs(3))])
                 .then(Tween::new(
                     EaseFunction::QuadraticInOut,
@@ -204,6 +216,38 @@ pub fn spawn_scoreboard(
                 },
                 Animator::new(goals_achieved_tween),
             ));
+            parent.spawn((
+                TextBundle {
+                    style: Style { ..default() },
+                    text: Text {
+                        sections: vec![
+                            TextSection::new(
+                                "Cards Played: ",
+                                TextStyle {
+                                    font: fonts.fira.clone(),
+                                    font_size: 32.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                            TextSection::new(
+                                "",
+                                TextStyle {
+                                    font: fonts.fira.clone(),
+                                    font_size: 32.0,
+                                    color: Color::WHITE,
+                                },
+                            ),
+                        ],
+
+                        alignment: TextAlignment::Center,
+
+                        ..default()
+                    },
+
+                    ..default()
+                },
+                Animator::new(card_played_tween),
+            ));
 
             parent.spawn((
                 TextBundle {
@@ -237,44 +281,45 @@ pub fn spawn_scoreboard(
                 },
                 Animator::new(final_score_tween),
             ));
-            // parent
-            //     .spawn((
-            //         ButtonBundle {
-            //             style: Style {
-            //                 width: Val::Px(200.),
-            //                 height: Val::Px(80.0),
-            //                 justify_content: JustifyContent::Center,
-            //                 align_items: AlignItems::Center,
-            //                 ..default()
-            //             },
-            //
-            //             background_color: BackgroundColor::from(NORMAL_BUTTON_COLOR),
-            //             ..default()
-            //         },
-            //         MainMenuButton,
-            //     ))
-            //     .with_children(|parent| {
-            //         parent.spawn(TextBundle {
-            //             text: Text {
-            //                 sections: vec![TextSection::new(
-            //                     "Menu",
-            //                     TextStyle {
-            //                         font: fonts.fira.clone_weak(),
-            //                         font_size: 32.0,
-            //                         color: Color::BLACK,
-            //                     },
-            //                 )],
-            //                 alignment: TextAlignment::Center,
-            //                 ..default()
-            //             },
-            //             ..default()
-            //         });
-            //     });
+            parent
+                .spawn((
+                    ButtonBundle {
+                        style: Style {
+                            width: Val::Px(200.),
+                            height: Val::Px(80.0),
+                            justify_content: JustifyContent::Center,
+                            align_items: AlignItems::Center,
+                            ..default()
+                        },
+
+                        background_color: BackgroundColor::from(NORMAL_BUTTON_COLOR),
+                        ..default()
+                    },
+                    MainMenuButton,
+                ))
+                .with_children(|parent| {
+                    parent.spawn(TextBundle {
+                        text: Text {
+                            sections: vec![TextSection::new(
+                                "Menu",
+                                TextStyle {
+                                    font: fonts.fira.clone_weak(),
+                                    font_size: 32.0,
+                                    color: Color::BLACK,
+                                },
+                            )],
+                            alignment: TextAlignment::Center,
+                            ..default()
+                        },
+                        ..default()
+                    });
+                });
         })
         .id();
 }
-pub fn despawn_scoreboard(mut cmd: Commands, menu_q: Query<Entity, With<Scoreboard>>) {
-    cmd.entity(menu_q.single()).despawn_recursive();
+pub fn despawn_scoreboard(mut cmd: Commands, score_q: Query<Entity, With<Scoreboard>>) {
+    println!("DESPAWN SCORE");
+    cmd.entity(score_q.single()).despawn_recursive();
 }
 pub fn press_menu(
     mut cmd: Commands,
@@ -288,7 +333,6 @@ pub fn press_menu(
             Interaction::Pressed => {
                 *color = BackgroundColor::from(PRESS_BUTTON_COLOR);
                 cmd.insert_resource(NextState(Some(AppState::Menu)));
-                cmd.insert_resource(NextState(Some(GameState::Setup)));
             },
             Interaction::Hovered => {
                 *color = BackgroundColor::from(HOVER_BUTTON_COLOR);

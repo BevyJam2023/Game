@@ -21,6 +21,7 @@ impl Plugin for GoalsPlugin {
             OnEnter(AppState::Playing),
             (spawn_goals).run_if(in_state(GameState::Setup)),
         )
+        .add_systems(OnExit(AppState::Playing), reset_goals)
         .add_systems(Update, (position_goals));
     }
 }
@@ -64,4 +65,7 @@ pub fn position_goals(
             transform.translation.z = 20.;
         }
     }
+}
+pub fn reset_goals(mut cmd: Commands, q_goals: Query<Entity, With<Goals>>) {
+    cmd.entity(q_goals.single()).despawn_recursive();
 }

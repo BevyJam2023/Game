@@ -5,7 +5,7 @@ use bevy_tweening::Lerp;
 
 use super::{
     card::{Card, SpawnCard},
-    GameState,
+    GameState, Score,
 };
 use crate::{
     operation::{generate_random_operations, Operation},
@@ -27,6 +27,7 @@ impl Plugin for RulePlugin {
             OnEnter(AppState::Playing),
             (spawn_rules).run_if(in_state(GameState::Setup)),
         )
+        .add_systems(OnExit(AppState::Playing), reset_rules)
         .add_event::<AddRule>()
         .add_systems(Update, (position_rules, cycle_rule));
     }
@@ -77,12 +78,14 @@ pub fn cycle_rule(
     mut cmd: Commands,
     mut q_rules: Query<(&mut Rule, &mut Children)>,
     mut reader: EventReader<AddRule>,
+    mut score: ResMut<Score>,
 ) {
     for event in reader.read() {
         let (mut rule, mut children) = q_rules.single_mut();
         dbg!(rule.len());
 
         if rule.len() >= 3 {
+            score.cards_played += 1;
             rule.remove(2);
             cmd.entity(*children.iter().last().unwrap()).remove_parent();
 
@@ -91,4 +94,7 @@ pub fn cycle_rule(
             rule.insert(0, event.rule.clone());
         }
     }
+}
+pub fn reset_rules(mut cmd: Commands, q_rule: Query<Entity, With<Rule>>) {
+    cmd.entity(q_rule.single()).despawn_recursive();
 }

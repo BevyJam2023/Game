@@ -47,6 +47,15 @@ pub struct Score {
     pub score: u32,
     pub base_score: u32,
     pub goal_status: Vec<bool>,
+    pub cards_played: u32,
+}
+impl Score {
+    pub fn reset(&mut self) {
+        self.score = 0;
+        self.base_score = 0;
+        self.goal_status = vec![false, false, false];
+        self.cards_played = 0;
+    }
 }
 
 pub struct CardsPlugin;
@@ -57,13 +66,15 @@ impl Plugin for CardsPlugin {
                 score: 0,
                 base_score: 0,
                 goal_status: vec![false, false, false],
+                cards_played: 0,
             })
             .insert_resource(GameTimer {
-                timer: Timer::new(Duration::from_secs(120), TimerMode::Once),
+                timer: Timer::new(Duration::from_secs(3), TimerMode::Once),
             })
             .add_plugins((DeckPlugin, HandPlugin, CardPlugin, RulePlugin, GoalsPlugin))
             .add_systems(OnEnter(AppState::Playing), setup_input)
             .add_systems(Update, start_game.run_if(in_state(GameState::Start)))
+            .add_systems(OnExit(AppState::Playing), reset_resources)
             .add_systems(
                 Update,
                 time_game
@@ -72,6 +83,18 @@ impl Plugin for CardsPlugin {
             )
             .add_plugins(InputManagerPlugin::<Actions>::default());
     }
+}
+pub fn reset_resources(
+    mut cmd: Commands,
+    mut game_timer: ResMut<GameTimer>,
+    mut score: ResMut<Score>,
+    mut q_actions: Query<Entity, With<ActionState<Actions>>>,
+) {
+    cmd.insert_resource(NextState(Some(GameState::Setup)));
+    cmd.entity(q_actions.single()).despawn_recursive();
+
+    game_timer.timer.reset();
+    score.reset();
 }
 pub fn setup_input(mut cmd: Commands) {
     let mut input_map = InputMap::new([(MouseButton::Left, Actions::Select)]);
