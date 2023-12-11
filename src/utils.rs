@@ -73,3 +73,14 @@ where
         items.iter().cloned().sum::<T>() / (items.len() as f32)
     }
 }
+
+pub fn point_in_board(x: f32, y: f32, size: Vec2, center: Vec2) -> bool {
+    let half_width = size.x / 2.0;
+    let half_height = size.y / 2.0;
+    let min_x = center.x - half_width;
+    let max_x = center.x + half_width;
+    let min_y = center.y - half_height;
+    let max_y = center.y + half_height;
+
+    min_x <= x && x <= max_x && min_y <= y && y <= max_y
+}

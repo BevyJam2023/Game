@@ -14,7 +14,7 @@ pub enum Operation {
     Mul(Shape, u32),
     Sub(Shape, Shape),
     Add(Shape, Shape),
-    Sqr(Shape),
+    // Sqr(Shape),
     Inc(Shape),
     Dec(Shape),
     None,
@@ -28,12 +28,15 @@ impl Operation {
     pub fn random_operation() -> Operation {
         let mut rng = rand::thread_rng();
 
-        let o = rng.gen_range(0..4);
+        let o = rng.gen_range(0..5);
         match o {
             0 => Operation::Mul(Shape::random_shape(), 2),
             1 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
             2 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
-            _ => Operation::Sqr(Shape::random_shape()),
+            // 3 => Operation::Sqr(Shape::random_shape()),
+            3 => Operation::Inc(Shape::random_shape()),
+            4 => Operation::Dec(Shape::random_shape()),
+            _ => Operation::None,
         }
     }
 
@@ -137,7 +140,30 @@ impl Operation {
                         .id(),
                 ]
             },
-            Operation::Sqr(s) => {
+            // Operation::Sqr(s) => {
+            //     vec![
+            //         cmd.spawn(s.get_bundle(ma, c_m))
+            //             .insert(Transform {
+            //                 translation: Vec3::new(0., 0., 1.),
+            //                 scale: Vec3::new(0.3, 0.3, 1.),
+            //                 ..default()
+            //             })
+            //             .id(),
+            //         cmd.spawn(SpriteBundle {
+            //             texture: textures.two.clone(),
+            //             transform: Transform {
+            //                 translation: Vec3::new(40., 40., 1.),
+            //                 scale: Vec3::new(0.5, 0.5, 1.),
+            //                 ..default()
+            //             },
+            //
+            //             ..default()
+            //         })
+            //         .id(),
+            //     ]
+            // },
+            Operation::None => vec![],
+            Operation::Inc(s) => {
                 vec![
                     cmd.spawn(s.get_bundle(ma, c_m))
                         .insert(Transform {
@@ -147,9 +173,9 @@ impl Operation {
                         })
                         .id(),
                     cmd.spawn(SpriteBundle {
-                        texture: textures.two.clone(),
+                        texture: textures.add.clone(),
                         transform: Transform {
-                            translation: Vec3::new(40., 40., 1.),
+                            translation: Vec3::new(40., 0., 1.),
                             scale: Vec3::new(0.5, 0.5, 1.),
                             ..default()
                         },
@@ -159,9 +185,28 @@ impl Operation {
                     .id(),
                 ]
             },
-            Operation::None => vec![],
-            Operation::Inc(_) => todo!(),
-            Operation::Dec(_) => todo!(),
+            Operation::Dec(s) => {
+                vec![
+                    cmd.spawn(s.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.sub.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.5, 0.5, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                ]
+            },
         }
     }
 }

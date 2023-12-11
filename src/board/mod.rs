@@ -10,7 +10,10 @@ use rand::Rng;
 
 use crate::{
     cards::{self, rules::Rule},
-    game_shapes::{self, ColorMaterialAssets, GameColor, GamePolygon, Shape, ShapeAssets},
+    game_shapes::{
+        self, config::POLYGON_RADIUS, ColorMaterialAssets, GameColor, GamePolygon,
+        PolygonColliders, Shape, ShapeAssets,
+    },
     loading::TextureAssets,
     operation::Operation,
     utils::average,
@@ -20,11 +23,11 @@ use crate::{
 pub mod config {
     use super::Vec2;
 
-    pub const SIZE: (f32, f32) = (1000., 1000.);
-    pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.1);
+    pub const SIZE: Vec2 = Vec2::new(10000., 10000.);
+    pub const CENTER: Vec2 = Vec2::new(0., 0.2 * SIZE.x);
     pub const WALL_THICKNESS: f32 = 100.;
     pub const SHAPE_SCALE: f32 = 0.25;
-    pub const MAX_SPEED: f32 = 10.;
+    pub const MAX_SPEED: f32 = 1000.;
 }
 
 #[derive(PhysicsLayer)]
@@ -56,7 +59,7 @@ pub struct BoardPlugin;
 impl Plugin for BoardPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<SpawnBody>()
-            .insert_resource(BoardTick(Timer::from_seconds(0.005, TimerMode::Repeating)))
+            .insert_resource(BoardTick(Timer::from_seconds(0.025, TimerMode::Repeating)))
             .add_systems(OnEnter(AppState::Playing), setup)
             .add_systems(
                 Update,
@@ -76,17 +79,17 @@ fn setup(mut cmd: Commands, textures: Res<TextureAssets>) {
     cmd.spawn((
         SpriteBundle {
             sprite: Sprite {
-                custom_size: Some(Vec2::new(config::SIZE.0, config::SIZE.1)),
+                custom_size: Some(Vec2::new(config::SIZE.x, config::SIZE.y)),
                 ..Default::default()
             },
-            texture: textures.card_red.clone(),
+            texture: textures.bg.clone(),
             transform: Transform::from_translation(config::CENTER.extend(0.)),
             ..Default::default()
         },
         Board,
     ));
 
-    let side_length = config::SIZE.0;
+    let side_length = config::SIZE.x;
 
     // Wall positions (assuming the center of the square is at the origin)
     let positions = [
@@ -138,49 +141,50 @@ fn spawn_on_timer(
             return;
         };
 
-        if let Some(spawn_event) = rule_ops
+        let spawn_event: Vec<SpawnBody> = rule_ops
             .iter()
             .filter(|op| match op {
                 Operation::Mul(_, _) => true,
-                Operation::Sqr(_) => true,
+                // Operation::Sqr(_) => true,
                 Operation::Inc(_) => true,
                 Operation::Dec(_) => true,
                 _ => false,
             })
-            .last()
             .map(|op| match op {
-                Operation::Mul(shape, x) => std::iter::repeat(SpawnBody {
-                    shape: shape.clone(),
-                    transform: Transform::from_translation(
-                        config::CENTER.extend(0.)
-                            + Vec3::new(
-                                rng_thread.gen_range(-300..=300) as f32,
-                                rng_thread.gen_range(-300..=300) as f32,
-                                10.,
-                            ),
-                    ),
-                    velocity: None,
-                })
-                .take((*x as usize - 1) * q_board_shapes.iter().filter(|s| s == &shape).count())
-                .collect(),
-                Operation::Sqr(shape) => std::iter::repeat(SpawnBody {
-                    shape: shape.clone(),
-                    transform: Transform::from_translation(
-                        config::CENTER.extend(0.)
-                            + Vec3::new(
-                                rng_thread.gen_range(-300..=300) as f32,
-                                rng_thread.gen_range(-300..=300) as f32,
-                                10.,
-                            ),
-                    ),
-                    velocity: None,
-                })
-                .take({
-                    let num = q_board_shapes.iter().filter(|s| s == &shape).count();
-
-                    num.pow(2) - num
-                })
-                .collect(),
+                Operation::Mul(shape, x) => (0..((*x as usize - 1)
+                    * q_board_shapes.iter().filter(|s| s == &shape).count()))
+                    .into_iter()
+                    .map(|_| SpawnBody {
+                        shape: shape.clone(),
+                        transform: Transform::from_translation(
+                            config::CENTER.extend(0.)
+                                + Vec3::new(
+                                    rng_thread.gen_range(-300..=300) as f32,
+                                    rng_thread.gen_range(-300..=300) as f32,
+                                    10.,
+                                ),
+                        ),
+                        velocity: None,
+                    })
+                    .collect(),
+                // Operation::Sqr(shape) => std::iter::repeat(SpawnBody {
+                //     shape: shape.clone(),
+                //     transform: Transform::from_translation(
+                //         config::CENTER.extend(0.)
+                //             + Vec3::new(
+                //                 rng_thread.gen_range(-300..=300) as f32,
+                //                 rng_thread.gen_range(-300..=300) as f32,
+                //                 10.,
+                //             ),
+                //     ),
+                //     velocity: None,
+                // })
+                // .take({
+                //     let num = q_board_shapes.iter().filter(|s| s == &shape).count();
+                //
+                //     num.pow(2) - num
+                // })
+                // .collect(),
                 Operation::Inc(shape) => vec![SpawnBody {
                     shape: shape.clone(),
                     transform: Transform::from_translation(
@@ -196,26 +200,51 @@ fn spawn_on_timer(
                 Operation::Dec(_) => todo!("Not done Decrement"),
                 _ => unreachable!(),
             })
-        {
-            println!("big collision");
-            e.send_batch(spawn_event);
+            .flatten()
+            .collect();
+
+        for ev in spawn_event {
+            e.send(ev);
         }
+        // e.send_batch(spawn_event);
+    }
+
+    let mut rng_thread = rand::thread_rng();
+    for i in (0..100) {
+        e.send(SpawnBody {
+            shape: Shape::random_shape(),
+            transform: Transform::from_translation(
+                config::CENTER.extend(0.)
+                    + Vec3::new(
+                        rng_thread.gen_range(-300..=300) as f32,
+                        rng_thread.gen_range(-300..=300) as f32,
+                        10.,
+                    ),
+            ),
+            velocity: None,
+        });
     }
 }
 
 fn spawn_bodies(
     mut cmd: Commands,
     mut reader: EventReader<SpawnBody>,
+    poly_colliders: Res<PolygonColliders>,
     mesh: Res<ShapeAssets>,
     color_mat: Res<ColorMaterialAssets>,
 ) {
+    let mut rng_thread = rand::thread_rng();
+
     for event in reader.read() {
         cmd.spawn((
             event.shape.get_bundle(&mesh, &color_mat),
-            event.shape.polygon.create_collider(),
+            poly_colliders.get(&event.shape.polygon).unwrap().clone(),
             event.shape.clone(),
             RigidBody::Dynamic,
-            event.velocity.unwrap_or(LinearVelocity::default()),
+            event.velocity.unwrap_or(LinearVelocity(Vec2::new(
+                rng_thread.gen_range(-config::MAX_SPEED..=config::MAX_SPEED),
+                rng_thread.gen_range(-config::MAX_SPEED..=config::MAX_SPEED),
+            ))),
             Restitution::PERFECTLY_ELASTIC,
             IsOnBoard,
             CollisionLayers::new([Layer::Shape], [Layer::Wall]),
@@ -226,40 +255,41 @@ fn spawn_bodies(
 }
 
 fn clamp_vel(mut q_vel: Query<&mut LinearVelocity, With<IsOnBoard>>) {
-    for mut v in q_vel.iter_mut() {
+    for mut v in q_vel
+        .iter_mut()
+        .filter(|v| v.0.dot(v.0) > config::MAX_SPEED.powi(2))
+    {
         v.0 = v.length().min(config::MAX_SPEED) * v.normalize();
     }
 }
 
 fn handle_delay(
     mut c: Commands,
-    mut q_coll: Query<(Entity, &Collider, &Transform, &mut AwaitNoCollision)>,
-    spatial_query: SpatialQuery,
+    mut q_coll: Query<(Entity, &mut AwaitNoCollision)>,
+    q_trans: Query<(Entity, &Transform), With<IsOnBoard>>,
 ) {
-    for (ent, coll, trans, mut awa) in q_coll.iter_mut() {
+    let translations: Vec<(Entity, Vec3)> =
+        q_trans.iter().map(|(e, t)| (e, t.translation)).collect();
+
+    for (ent, mut awa) in q_coll.iter_mut() {
         awa.0 = usize::max(1, awa.0 - 1);
 
-        let intersections = spatial_query.shape_intersections(
-            &{
-                let mut c = coll.clone();
-                c.set_scale(Vec2::splat(2. * config::SHAPE_SCALE), 10);
-                c
-            }, // Shape
-            Vec2::new(trans.translation.x, trans.translation.y), // Shape position
-            trans.rotation.z,
-            SpatialQueryFilter::new()
-                .with_masks([Layer::Shape])
-                .without_entities([ent]), // Query filter
-        );
+        let (_, this_trans) = q_trans.get(ent).unwrap();
 
-        if intersections.len() == 0 && awa.0 == 1 {
+        let intersected = translations.iter().any(|(o_ent, t)| {
+            (ent != *o_ent)
+                && (this_trans.translation.distance_squared(*t)
+                    < (2. * config::SHAPE_SCALE * POLYGON_RADIUS).powi(2))
+        });
+
+        if intersected && awa.0 == 1 {
             c.entity(ent).remove::<AwaitNoCollision>();
             c.entity(ent).insert(CollisionLayers::new(
                 [Layer::Shape],
                 [Layer::Shape, Layer::Wall],
             ));
-        } else if intersections.len() > 0 {
-            // println!("{}", intersections.len());
+        } else if intersected {
+            // println!("overlapped");
         }
     }
 }
@@ -274,12 +304,12 @@ fn shape_collisions(
         return;
     };
 
-    // dbg!(q_shape
-    //     .iter()
-    //     .collect::<Vec<(&Shape, &Transform, &LinearVelocity)>>()
-    //     .len());
+    dbg!(q_shape
+        .iter()
+        .collect::<Vec<(&Shape, &Transform, &LinearVelocity)>>()
+        .len());
 
-    dbg!(rule_ops.deref());
+    // dbg!(rule_ops.deref());
 
     let mut combined: Vec<&Entity> = Vec::new();
 

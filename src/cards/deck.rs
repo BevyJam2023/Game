@@ -10,7 +10,7 @@ use leafwing_input_manager::{
 use super::{
     card::{Card, CardBundle, CardFace, FlipCard, Flipping, SpawnCard},
     hand::Hand,
-    CardAction, GameState,
+    Actions, GameState,
 };
 use crate::{
     board,
@@ -90,7 +90,7 @@ fn setup_decks(
     if deck_setup.spawned >= deck_setup.library_operations.len() {
         deck_setup.deck_setup_timer.reset();
         deck_setup.spawned = 0;
-        cmd.insert_resource(NextState(game_state.next_state()))
+        cmd.insert_resource(NextState(Some(GameState::Start)));
     }
 }
 fn discard_hand(
@@ -143,7 +143,7 @@ fn draw_to_hand_size(
     if deck_setup.spawned >= deck_setup.hand_size {
         deck_setup.spawned = 0;
 
-        cmd.insert_resource(NextState(game_state.next_state()))
+        cmd.insert_resource(NextState(Some(GameState::Playing)));
     }
 }
 
@@ -215,21 +215,24 @@ pub fn draw_card(
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-            let (entity, mut hand, mut hand_transform) = hand.single_mut();
-            let &child = children.first().unwrap();
-            if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
-                cmd.entity(child).remove_parent();
+            if children.iter().len() < 10 {
+                shuffle_discard_writer.send(ShuffleDiscard);
+            } else {
+                let (entity, mut hand, mut hand_transform) = hand.single_mut();
+                let &child = children.first().unwrap();
 
-                card_transform.translation.x +=
-                    deck_transform.translation.x - hand_transform.translation.x;
-                card_transform.translation.y +=
-                    deck_transform.translation.y - hand_transform.translation.y;
+                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                    cmd.entity(child).remove_parent();
 
-                cmd.entity(entity).push_children(&[child]);
-                flip_writer.send(FlipCard { card: child });
+                    card_transform.translation.x +=
+                        deck_transform.translation.x - hand_transform.translation.x;
+                    card_transform.translation.y +=
+                        deck_transform.translation.y - hand_transform.translation.y;
+
+                    cmd.entity(entity).push_children(&[child]);
+                    flip_writer.send(FlipCard { card: child });
+                }
             }
-        } else {
-            shuffle_discard_writer.send(ShuffleDiscard);
         }
     }
 }

@@ -1,4 +1,7 @@
-use std::{f32::INFINITY, time::Duration};
+use std::{
+    f32::{consts::PI, INFINITY},
+    time::Duration,
+};
 
 use bevy::{input::mouse::MouseButtonInput, math::Vec2Swizzles, prelude::*, window::PrimaryWindow};
 use bevy_tweening::{
@@ -15,12 +18,12 @@ use super::{
     card::{Card, FlipCard, Flipping},
     deck::{draw_card, Deck, Discard},
     rules::{AddRule, Rule},
-    CardAction, GameState,
+    Actions, GameState,
 };
 use crate::{
-    board,
+    board::{self, config},
     camera::{lerp, CardCamera},
-    utils::{calculate_rotated_bounds, point_in_polygon},
+    utils::{calculate_rotated_bounds, point_in_board, point_in_polygon},
     AppState,
 };
 
@@ -73,7 +76,7 @@ fn spawn_hand(mut commands: Commands) {
     commands
         .spawn(
             (SpatialBundle {
-                transform: Transform::from_xyz(0., -(board::config::SIZE.1 + 190. + 50.) / 2., 0.),
+                transform: Transform::from_xyz(0., -(board::config::SIZE.y + 190. + 50.) / 2., 0.),
                 ..Default::default()
             }),
         )
@@ -123,7 +126,7 @@ fn position_cards(
                 let before = transform.rotation.to_euler(EulerRot::XYZ);
 
                 transform.rotation = transform.rotation.lerp(
-                    Quat::from_euler(EulerRot::XYZ, before.0, before.1, rot.to_radians()),
+                    Quat::from_euler(EulerRot::XYZ, PI, 0., rot.to_radians()),
                     0.2,
                 );
             }
@@ -160,7 +163,7 @@ fn pickable_lerp(
 
 fn select_card(
     mut cmd: Commands,
-    mut actions: Query<&ActionState<CardAction>>,
+    mut actions: Query<&ActionState<Actions>>,
     mut q_hand: Query<(&mut Hand, &mut Children, &Transform)>,
     mut q_window: Query<&Window, (With<PrimaryWindow>, Without<Discard>)>,
     mut q_cards: Query<(Entity, &Card, &mut Transform), Without<Hand>>,
@@ -240,7 +243,7 @@ fn select_card(
         //         card: hand.hovered.unwrap(),
         //     });
         // }
-        if action_state.just_pressed(CardAction::Select) && hand.hovered.is_some() {
+        if action_state.just_pressed(Actions::Select) && hand.hovered.is_some() {
             hand.selected = hand.hovered;
 
             if let Ok((entity, card, transform)) = q_cards.get(hand.selected.unwrap()) {
@@ -263,25 +266,29 @@ fn select_card(
         }
     }
 
-    let select_released = action_state.just_released(CardAction::Select);
-    if select_released {
-        hand.selected = None;
-    }
-    if action_state.just_pressed(CardAction::Play) && hand.selected.is_some() {
-        let new_rule = hand.selected.unwrap();
-        let (rules_e, rules_t) = q_rules.single();
+    let select_released = action_state.just_released(Actions::Select);
+    if select_released && hand.selected.is_some() {
         if let Ok((entity, card, mut card_transform)) = q_cards.get_mut(hand.selected.unwrap()) {
-            cmd.entity(entity).remove_parent();
-            card_transform.translation.x -= rules_t.translation.x;
-            card_transform.translation.y -= rules_t.translation.y;
+            let g_x = card_transform.translation.x + hand_transform.translation.x;
+            let g_y = card_transform.translation.y + hand_transform.translation.y;
+            if point_in_board(g_x, g_y, config::SIZE, config::CENTER) {
+                let (rules_e, rules_t) = q_rules.single();
 
-            cmd.entity(rules_e).insert_children(0, &[new_rule]);
+                cmd.entity(entity).remove_parent();
+                card_transform.translation.x +=
+                    -rules_t.translation.x + hand_transform.translation.x;
+                card_transform.translation.y +=
+                    -rules_t.translation.y + hand_transform.translation.y;
 
-            cmd.insert_resource(NextState(Some(GameState::Discard)));
-            add_rule.send(AddRule {
-                rule: card.operation.clone(),
-            });
-            hand.selected = None;
+                cmd.entity(rules_e).insert_children(0, &[entity]);
+
+                cmd.insert_resource(NextState(Some(GameState::Discard)));
+                add_rule.send(AddRule {
+                    rule: card.operation.clone(),
+                });
+            }
         }
+
+        hand.selected = None;
     }
 }

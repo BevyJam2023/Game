@@ -59,7 +59,7 @@ impl Into<ColorMaterial> for GameColor {
         }
     }
 }
-#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Debug)]
+#[derive(EnumIter, Clone, Copy, PartialEq, Eq, Hash, Debug)]
 pub enum GamePolygon {
     Triangle,
     Square,
@@ -98,7 +98,7 @@ impl GamePolygon {
         }
     }
     pub fn create_collider(self) -> Collider {
-        // Collider::cuboid(config::POLYGON_RADIUS, config::POLYGON_RADIUS)
+        // Collider::ball(config::POLYGON_RADIUS)
         Collider::convex_decomposition(
             utils::regular_polygon_vertices(self.get_vertices() as usize, config::POLYGON_RADIUS),
             (0..(self.get_vertices() as usize))
@@ -165,6 +165,9 @@ impl Shape {
     }
 }
 
+#[derive(Resource, Deref, DerefMut)]
+pub struct PolygonColliders(HashMap<GamePolygon, Collider>);
+
 #[derive(Resource, Default)]
 pub struct ShapeAssets {
     pub triangle: Handle<Mesh>,
@@ -207,11 +210,13 @@ impl Plugin for GameShapePlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(ShapeAssets::default())
             .insert_resource(ColorMaterialAssets::default())
+            .insert_resource(PolygonColliders(HashMap::new()))
             .add_systems(
                 Startup,
                 |mut a: ResMut<Assets<Mesh>>,
                  mut m: ResMut<Assets<ColorMaterial>>,
                  mut s_a: ResMut<ShapeAssets>,
+                 mut p_c: ResMut<PolygonColliders>,
                  mut c_m_a: ResMut<ColorMaterialAssets>| {
                     s_a.triangle =
                         a.add(shape::RegularPolygon::new(config::POLYGON_RADIUS, 3).into());
@@ -229,6 +234,23 @@ impl Plugin for GameShapePlugin {
                     c_m_a.red = m.add(ColorMaterial::from(Color::RED));
                     c_m_a.green = m.add(ColorMaterial::from(Color::GREEN));
                     c_m_a.blue = m.add(ColorMaterial::from(Color::BLUE));
+
+                    p_c.insert(
+                        GamePolygon::Triangle,
+                        GamePolygon::Triangle.create_collider(),
+                    );
+
+                    p_c.insert(GamePolygon::Square, GamePolygon::Square.create_collider());
+                    p_c.insert(
+                        GamePolygon::Pentagon,
+                        GamePolygon::Pentagon.create_collider(),
+                    );
+                    p_c.insert(GamePolygon::Hexagon, GamePolygon::Hexagon.create_collider());
+                    p_c.insert(
+                        GamePolygon::Heptagon,
+                        GamePolygon::Heptagon.create_collider(),
+                    );
+                    p_c.insert(GamePolygon::Octagon, GamePolygon::Octagon.create_collider());
                 },
             );
     }

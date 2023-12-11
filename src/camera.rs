@@ -41,8 +41,8 @@ fn setup(mut cmd: Commands) {
             projection: OrthographicProjection {
                 near: -1000.,
                 scaling_mode: ScalingMode::AutoMin {
-                    min_width: 1.5 * board::config::SIZE.0,
-                    min_height: 1.5 * board::config::SIZE.1,
+                    min_width: 1.5 * board::config::SIZE.x,
+                    min_height: 1.5 * board::config::SIZE.y,
                 },
                 // scale: 2.,
                 ..Default::default()

@@ -49,6 +49,8 @@ pub struct TextureAssets {
     pub two: Handle<Image>,
     #[asset(path = "symbols/gt.png")]
     pub gt: Handle<Image>,
+    #[asset(path = "background.png")]
+    pub bg: Handle<Image>,
 }
 #[derive(AssetCollection, Resource)]
 pub struct FontAssets {

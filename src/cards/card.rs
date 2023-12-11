@@ -3,7 +3,7 @@ use std::f32::consts::PI;
 use bevy::{ecs::event::EventId, prelude::*};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
-use super::CardAction;
+use super::Actions;
 use crate::{
     game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
     goal::Goal,
