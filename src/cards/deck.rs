@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 use leafwing_input_manager::{
     prelude::{ActionState, InputManagerPlugin, InputMap},
@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     board,
-    loading::TextureAssets,
+    loading::{SoundAssets, TextureAssets},
     operation::{generate_random_operations, Operation},
     AppState,
 };
@@ -45,6 +45,7 @@ impl Plugin for DeckPlugin {
         app.add_systems(OnEnter(AppState::Playing), (spawn_deck, spawn_discard))
             .add_event::<DrawCard>()
             .add_event::<ShuffleDiscard>()
+            .add_systems(OnExit(AppState::Playing), reset_deck)
             .add_systems(
                 Update,
                 (
@@ -64,8 +65,19 @@ impl Plugin for DeckPlugin {
                 discard_timer: Timer::from_seconds(0.1, TimerMode::Repeating),
                 spawned: 0,
                 hand_size: 5,
-                library_operations: generate_random_operations(60),
+                library_operations: generate_random_operations(80),
             });
+    }
+}
+pub fn reset_deck(
+    mut cmd: Commands,
+    mut deck_setup: ResMut<DeckSetup>,
+    q_decks: Query<Entity, With<Deck>>,
+) {
+    deck_setup.spawned = 0;
+    deck_setup.library_operations = generate_random_operations(80);
+    for d in q_decks.iter() {
+        cmd.entity(d).despawn_recursive();
     }
 }
 fn setup_decks(
@@ -80,6 +92,7 @@ fn setup_decks(
     let entity = q_library.single();
     deck_setup.deck_setup_timer.tick(time.delta());
     if deck_setup.deck_setup_timer.finished() {
+        deck_setup.deck_setup_timer.reset();
         writer.send(SpawnCard {
             operation: deck_setup.library_operations[deck_setup.spawned].clone(),
             zone_id: entity,
@@ -155,11 +168,20 @@ fn spawn_discard(mut cmd: Commands) {
             transform: board::get_discard_transform(board::config::SIZE.into(), 190. + 50.),
             ..default()
         },
+        RenderLayers::layer(1),
     ));
 }
 
 //spawn deck when deck plugin is made
-fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
+fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>, sound: Res<SoundAssets>) {
+    cmd.spawn(AudioBundle {
+        source: sound.spawn_deck.clone(),
+        settings: PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Once,
+            ..default()
+        },
+    });
+
     let deck_id = cmd
         .spawn((
             Library,
@@ -169,6 +191,7 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
                 // Image size plus the offset of the stack cards...
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
 }
@@ -212,26 +235,34 @@ pub fn draw_card(
     mut reader: EventReader<DrawCard>,
     mut flip_writer: EventWriter<FlipCard>,
     mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
+    mut sound: Res<SoundAssets>,
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
-            if children.iter().len() < 10 {
+            cmd.spawn(AudioBundle {
+                source: sound.draw_card.clone(),
+                settings: PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Once,
+                    ..default()
+                },
+            });
+
+            if children.iter().len() < 5 {
                 shuffle_discard_writer.send(ShuffleDiscard);
-            } else {
-                let (entity, mut hand, mut hand_transform) = hand.single_mut();
-                let &child = children.first().unwrap();
+            }
+            let (entity, mut hand, mut hand_transform) = hand.single_mut();
+            let &child = children.first().unwrap();
 
-                if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
-                    cmd.entity(child).remove_parent();
+            if let Ok((card, mut card_transform)) = q_cards.get_mut(child) {
+                cmd.entity(child).remove_parent();
 
-                    card_transform.translation.x +=
-                        deck_transform.translation.x - hand_transform.translation.x;
-                    card_transform.translation.y +=
-                        deck_transform.translation.y - hand_transform.translation.y;
+                card_transform.translation.x +=
+                    deck_transform.translation.x - hand_transform.translation.x;
+                card_transform.translation.y +=
+                    deck_transform.translation.y - hand_transform.translation.y;
 
-                    cmd.entity(entity).push_children(&[child]);
-                    flip_writer.send(FlipCard { card: child });
-                }
+                cmd.entity(entity).push_children(&[child]);
+                flip_writer.send(FlipCard { card: child });
             }
         }
     }
@@ -249,6 +280,11 @@ pub fn discard_into_library(
 ) {
     for e in event.read() {
         let (library_e, library_t, mut library_d) = q_library.single_mut();
+        if q_discard.is_empty() {
+            cmd.insert_resource(NextState(Some(GameState::Scoring)));
+            return;
+        }
+
         let (discard_t, mut discard_d, children) = q_discard.single_mut();
 
         for &child in children.iter() {

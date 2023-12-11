@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 
 use super::{
@@ -21,6 +21,7 @@ impl Plugin for GoalsPlugin {
             OnEnter(AppState::Playing),
             (spawn_goals).run_if(in_state(GameState::Setup)),
         )
+        .add_systems(OnExit(AppState::Playing), reset_goals)
         .add_systems(Update, (position_goals));
     }
 }
@@ -33,11 +34,12 @@ pub fn spawn_goals(mut cmd: Commands, mut writer: EventWriter<SpawnGoalCard>) {
             Goals(goals.clone()),
             SpatialBundle {
                 transform: Transform {
-                    translation: Vec3::new(-200., 800., 0.),
+                    translation: Vec3::new(-1100., -600., 0.),
                     ..default()
                 },
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
     for g in goals {
@@ -64,4 +66,7 @@ pub fn position_goals(
             transform.translation.z = 20.;
         }
     }
+}
+pub fn reset_goals(mut cmd: Commands, q_goals: Query<Entity, With<Goals>>) {
+    cmd.entity(q_goals.single()).despawn_recursive();
 }

@@ -7,11 +7,11 @@ use bevy::{
 use bevy_pancam::{PanCam, PanCamPlugin};
 
 use crate::{board, AppState};
+#[derive(Debug, Component)]
+pub struct BoardCamera;
 
 #[derive(Debug, Component)]
 pub struct CardCamera;
-#[derive(Debug, Component)]
-pub struct BoardCamera;
 
 #[derive(Component)]
 pub struct CameraFollow;
@@ -35,7 +35,33 @@ fn setup(mut cmd: Commands) {
                 ..default()
             },
             camera: Camera {
+                order: 0,
+                ..default()
+            },
+            projection: OrthographicProjection {
+                near: -1000.,
+                scaling_mode: ScalingMode::AutoMin {
+                    min_width: 1.5 * board::config::SIZE.x,
+                    min_height: 1.5 * board::config::SIZE.y,
+                },
+                // scale: 2.,
+                ..Default::default()
+            },
+            ..default()
+        },
+        RenderLayers::layer(0),
+        BoardCamera,
+    ));
+    cmd.spawn((
+        Camera2dBundle {
+            camera_2d: Camera2d {
+                // no "background color", we need to see the main camera's output
+                clear_color: ClearColorConfig::None,
+                ..default()
+            },
+            camera: Camera {
                 order: 1,
+
                 ..default()
             },
             projection: OrthographicProjection {
@@ -50,7 +76,7 @@ fn setup(mut cmd: Commands) {
             ..default()
         },
         CardCamera,
-        RenderLayers::layer(0),
+        RenderLayers::layer(1),
     ));
 }
 
@@ -63,7 +89,7 @@ pub fn lerp(x: f32, y: f32, by: f32) -> f32 {
 pub fn free_cam_movement(
     time: Res<Time>,
     keyboard_input: Res<Input<KeyCode>>,
-    mut query: Query<(&mut Transform, &mut OrthographicProjection), With<Camera>>,
+    mut query: Query<(&mut Transform, &mut OrthographicProjection), With<BoardCamera>>,
 ) {
     for (mut transform, mut ortho) in query.iter_mut() {
         let mut direction = Vec3::ZERO;

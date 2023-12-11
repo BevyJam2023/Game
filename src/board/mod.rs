@@ -9,7 +9,7 @@ use bevy_xpbd_2d::prelude::{
 use rand::{seq::IteratorRandom, Rng};
 
 use crate::{
-    cards::{self, rules::Rule},
+    cards::{self, rules::Rule, GameState},
     game_shapes::{
         self, config::POLYGON_RADIUS, ColorMaterialAssets, GameColor, GamePolygon,
         PolygonColliders, Shape, ShapeAssets,
@@ -73,7 +73,8 @@ impl Plugin for BoardPlugin {
                     clamp_vel,
                     world_gravity,
                 )
-                    .run_if(in_state(AppState::Playing)),
+                    .run_if(in_state(AppState::Playing))
+                    .run_if(not(in_state(GameState::Scoring))),
             );
     }
 }
@@ -335,11 +336,6 @@ fn shape_collisions(
     let Ok(rule_ops) = rules.get_single() else {
         return;
     };
-
-    dbg!(q_shape
-        .iter()
-        .collect::<Vec<(Entity, &Shape, &Transform, &LinearVelocity)>>()
-        .len());
 
     let mut combined: Vec<&Entity> = Vec::new();
 

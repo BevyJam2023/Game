@@ -3,7 +3,10 @@ use std::{
     time::Duration,
 };
 
-use bevy::{input::mouse::MouseButtonInput, math::Vec2Swizzles, prelude::*, window::PrimaryWindow};
+use bevy::{
+    input::mouse::MouseButtonInput, math::Vec2Swizzles, prelude::*, render::view::RenderLayers,
+    window::PrimaryWindow,
+};
 use bevy_tweening::{
     lens::{TransformRotationLens, TransformScaleLens},
     *,
@@ -60,6 +63,7 @@ impl Plugin for HandPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(OnEnter(AppState::Playing), spawn_hand)
             .add_systems(Update, component_animator_system::<Transform>)
+            .add_systems(OnExit(AppState::Playing), reset_hand)
             .add_systems(
                 Update,
                 (
@@ -74,12 +78,13 @@ impl Plugin for HandPlugin {
 //spawn deck when deck plugin is made
 fn spawn_hand(mut commands: Commands) {
     commands
-        .spawn(
-            (SpatialBundle {
+        .spawn((
+            SpatialBundle {
                 transform: Transform::from_xyz(0., -(board::config::SIZE.y + 190. + 50.) / 2., 0.),
                 ..Default::default()
-            }),
-        )
+            },
+            RenderLayers::layer(1),
+        ))
         .insert(Hand {
             selected: None,
             hovered: None,
@@ -123,8 +128,6 @@ fn position_cards(
             transform.translation.y = transform.translation.y.lerp(&y, &0.2);
             transform.translation.z = i as f32 * 10.;
             if !q_flipping.contains(entity) {
-                let before = transform.rotation.to_euler(EulerRot::XYZ);
-
                 transform.rotation = transform.rotation.lerp(
                     Quat::from_euler(EulerRot::XYZ, PI, 0., rot.to_radians()),
                     0.2,
@@ -291,4 +294,7 @@ fn select_card(
 
         hand.selected = None;
     }
+}
+pub fn reset_hand(mut cmd: Commands, q_hand: Query<Entity, With<Hand>>) {
+    cmd.entity(q_hand.single()).despawn_recursive();
 }

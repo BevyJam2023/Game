@@ -1,11 +1,11 @@
-use std::iter::repeat;
+use std::{f32::consts::PI, iter::repeat};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 
 use super::{
     card::{Card, SpawnCard},
-    GameState,
+    GameState, Score,
 };
 use crate::{
     operation::{generate_random_operations, Operation},
@@ -27,6 +27,7 @@ impl Plugin for RulePlugin {
             OnEnter(AppState::Playing),
             (spawn_rules).run_if(in_state(GameState::Setup)),
         )
+        .add_systems(OnExit(AppState::Playing), reset_rules)
         .add_event::<AddRule>()
         .add_systems(Update, (position_rules, cycle_rule));
     }
@@ -38,11 +39,12 @@ pub fn spawn_rules(mut cmd: Commands, mut writer: EventWriter<SpawnCard>) {
             Rule(repeat(Operation::None).take(3).collect()),
             SpatialBundle {
                 transform: Transform {
-                    translation: Vec3::new(650., 400., 0.),
+                    translation: Vec3::new(800., -600., 0.),
                     ..default()
                 },
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
     for _ in 0..3 {
@@ -67,6 +69,9 @@ pub fn position_rules(
             transform.translation.y = transform.translation.y.lerp(&0., &0.2);
 
             transform.translation.z = 20.;
+            transform.rotation = transform
+                .rotation
+                .lerp(Quat::from_euler(EulerRot::XYZ, 0., PI, 0.), 0.2);
         }
     }
 }
@@ -74,12 +79,14 @@ pub fn cycle_rule(
     mut cmd: Commands,
     mut q_rules: Query<(&mut Rule, &mut Children)>,
     mut reader: EventReader<AddRule>,
+    mut score: ResMut<Score>,
 ) {
     for event in reader.read() {
         let (mut rule, mut children) = q_rules.single_mut();
         dbg!(rule.len());
 
         if rule.len() >= 3 {
+            score.cards_played += 1;
             rule.remove(2);
             cmd.entity(*children.iter().last().unwrap()).remove_parent();
 
@@ -88,4 +95,7 @@ pub fn cycle_rule(
             rule.insert(0, event.rule.clone());
         }
     }
+}
+pub fn reset_rules(mut cmd: Commands, q_rule: Query<Entity, With<Rule>>) {
+    cmd.entity(q_rule.single()).despawn_recursive();
 }

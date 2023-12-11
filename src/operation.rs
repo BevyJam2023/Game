@@ -1,6 +1,6 @@
 use std::iter::repeat_with;
 
-use bevy::{prelude::*, sprite::SpriteBundle, utils::default};
+use bevy::{prelude::*, render::view::RenderLayers, sprite::SpriteBundle, utils::default};
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -28,14 +28,13 @@ impl Operation {
     pub fn random_operation() -> Operation {
         let mut rng = rand::thread_rng();
 
-        let o = rng.gen_range(0..5);
+        let o = rng.gen_range(0..100);
         match o {
-            0 => Operation::Mul(Shape::random_shape(), 2),
-            1 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
-            2 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
-            // 3 => Operation::Sqr(Shape::random_shape()),
-            3 => Operation::Inc(Shape::random_shape()),
-            4 => Operation::Dec(Shape::random_shape()),
+            0..=9 => Operation::Mul(Shape::random_shape(), 2),
+            10..=19 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
+            20..=39 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
+            40..=69 => Operation::Inc(Shape::random_shape()),
+            70..=89 => Operation::Dec(Shape::random_shape()),
             _ => Operation::None,
         }
     }
@@ -57,6 +56,7 @@ impl Operation {
                             scale: Vec3::new(0.25, 0.25, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.mul.clone(),
@@ -68,6 +68,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.two.clone(),
@@ -79,6 +80,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },
@@ -90,6 +92,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.sub.clone(),
@@ -101,6 +104,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(s2.get_bundle(ma, c_m))
                         .insert(Transform {
@@ -108,6 +112,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                 ]
             },
@@ -119,6 +124,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.add.clone(),
@@ -130,6 +136,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(s2.get_bundle(ma, c_m))
                         .insert(Transform {
@@ -137,6 +144,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                 ]
             },
@@ -171,6 +179,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.add.clone(),
@@ -182,6 +191,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },
@@ -193,6 +203,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.sub.clone(),
@@ -204,6 +215,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },
