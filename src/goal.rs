@@ -1,6 +1,6 @@
 use std::iter::repeat_with;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 
 use crate::{
     game_shapes::{ColorMaterialAssets, Shape, ShapeAssets},
@@ -34,6 +34,7 @@ impl Goal {
                     scale: Vec3::new(0.25, 0.25, 1.),
                     ..default()
                 })
+                .insert(RenderLayers::layer(1))
                 .id(),
             cmd.spawn(SpriteBundle {
                 texture: textures.gt.clone(),
@@ -45,6 +46,7 @@ impl Goal {
 
                 ..default()
             })
+            .insert(RenderLayers::layer(1))
             .id(),
             cmd.spawn(self.s2.get_bundle(ma, c_m))
                 .insert(Transform {
@@ -52,6 +54,7 @@ impl Goal {
                     scale: Vec3::new(0.25, 0.25, 1.),
                     ..default()
                 })
+                .insert(RenderLayers::layer(1))
                 .id(),
         ]
     }

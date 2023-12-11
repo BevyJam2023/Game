@@ -3,7 +3,10 @@ use std::{
     time::Duration,
 };
 
-use bevy::{input::mouse::MouseButtonInput, math::Vec2Swizzles, prelude::*, window::PrimaryWindow};
+use bevy::{
+    input::mouse::MouseButtonInput, math::Vec2Swizzles, prelude::*, render::view::RenderLayers,
+    window::PrimaryWindow,
+};
 use bevy_tweening::{
     lens::{TransformRotationLens, TransformScaleLens},
     *,
@@ -75,12 +78,13 @@ impl Plugin for HandPlugin {
 //spawn deck when deck plugin is made
 fn spawn_hand(mut commands: Commands) {
     commands
-        .spawn(
-            (SpatialBundle {
+        .spawn((
+            SpatialBundle {
                 transform: Transform::from_xyz(0., -(board::config::SIZE.y + 190. + 50.) / 2., 0.),
                 ..Default::default()
-            }),
-        )
+            },
+            RenderLayers::layer(1),
+        ))
         .insert(Hand {
             selected: None,
             hovered: None,

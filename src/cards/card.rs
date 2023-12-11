@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::{ecs::event::EventId, prelude::*};
+use bevy::{ecs::event::EventId, prelude::*, render::view::RenderLayers};
 use leafwing_input_manager::{prelude::InputManagerPlugin, Actionlike};
 
 use super::Actions;
@@ -92,6 +92,7 @@ fn spawn_goal_card(
                     ..default()
                 },
                 CardFace { is_front: true },
+                RenderLayers::layer(1),
             ))
             .id();
         let back = cmd
@@ -106,19 +107,23 @@ fn spawn_goal_card(
                     ..default()
                 },
                 CardFace { is_front: false },
+                RenderLayers::layer(1),
             ))
             .id();
 
         let card_id = cmd
-            .spawn(CardBundle {
-                card: Card {
-                    back,
-                    front,
-                    face_up: event.face_up,
-                    operation: Operation::None,
+            .spawn((
+                CardBundle {
+                    card: Card {
+                        back,
+                        front,
+                        face_up: event.face_up,
+                        operation: Operation::None,
+                    },
+                    sprite: SpriteBundle { ..default() },
                 },
-                sprite: SpriteBundle { ..default() },
-            })
+                RenderLayers::layer(1),
+            ))
             .id();
         cmd.entity(front).push_children(&operation_entity);
 
@@ -155,6 +160,7 @@ fn spawn_card(
                     ..default()
                 },
                 CardFace { is_front: true },
+                RenderLayers::layer(1),
             ))
             .id();
         let back = cmd
@@ -169,19 +175,23 @@ fn spawn_card(
                     ..default()
                 },
                 CardFace { is_front: false },
+                RenderLayers::layer(1),
             ))
             .id();
 
         let card_id = cmd
-            .spawn(CardBundle {
-                card: Card {
-                    back,
-                    front,
-                    face_up: event.face_up,
-                    operation: event.operation.clone(),
+            .spawn((
+                CardBundle {
+                    card: Card {
+                        back,
+                        front,
+                        face_up: event.face_up,
+                        operation: event.operation.clone(),
+                    },
+                    sprite: SpriteBundle { ..default() },
                 },
-                sprite: SpriteBundle { ..default() },
-            })
+                RenderLayers::layer(1),
+            ))
             .id();
         cmd.entity(front).push_children(&operation_entity);
 

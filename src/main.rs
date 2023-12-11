@@ -4,7 +4,7 @@ use bevy::{asset::AssetMetaCheck, prelude::*};
 use bevy_tweening::*;
 use bevy_xpbd_2d::prelude::{PhysicsDebugPlugin, PhysicsPlugins};
 // use bevy_xpbd
-use sham::GamePlugin;
+use shapecraft::GamePlugin;
 
 fn main() {
     App::new()
@@ -16,7 +16,7 @@ fn main() {
             GamePlugin,
             DefaultPlugins.set(WindowPlugin {
                 primary_window: Some(Window {
-                    title: "Whoot".to_string(),
+                    title: "Shapecraft".to_string(),
                     resolution: (1920., 1080.).into(),
                     canvas: Some("#bevy".to_owned()),
                     ..default()

@@ -1,4 +1,4 @@
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 
 use super::{
@@ -39,6 +39,7 @@ pub fn spawn_goals(mut cmd: Commands, mut writer: EventWriter<SpawnGoalCard>) {
                 },
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
     for g in goals {

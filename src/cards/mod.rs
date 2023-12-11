@@ -69,7 +69,7 @@ impl Plugin for CardsPlugin {
                 cards_played: 0,
             })
             .insert_resource(GameTimer {
-                timer: Timer::new(Duration::from_secs(3), TimerMode::Once),
+                timer: Timer::new(Duration::from_secs(120), TimerMode::Once),
             })
             .add_plugins((DeckPlugin, HandPlugin, CardPlugin, RulePlugin, GoalsPlugin))
             .add_systems(OnEnter(AppState::Playing), setup_input)

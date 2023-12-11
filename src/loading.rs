@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy_asset_loader::prelude::*;
-use bevy_kira_audio::AudioSource;
 
 use crate::AppState;
 
@@ -14,6 +13,7 @@ impl Plugin for LoadingPlugin {
         // .add_collection_to_loading_state::<_, FontAssets>(GameState::Loading)
         // .add_collection_to_loading_state::<_, AudioAssets>(GameState::Loading)
         .add_collection_to_loading_state::<_, TextureAssets>(AppState::Loading)
+        .add_collection_to_loading_state::<_, SoundAssets>(AppState::Loading)
         .add_collection_to_loading_state::<_, FontAssets>(AppState::Loading);
     }
 }
@@ -56,4 +56,15 @@ pub struct TextureAssets {
 pub struct FontAssets {
     #[asset(path = "fonts/FiraSans-Bold.ttf")]
     pub fira: Handle<Font>,
+}
+#[derive(AssetCollection, Resource)]
+pub struct SoundAssets {
+    #[asset(path = "sounds/draw_card.ogg")]
+    pub draw_card: Handle<AudioSource>,
+    #[asset(path = "sounds/spawn_deck.ogg")]
+    pub spawn_deck: Handle<AudioSource>,
+    #[asset(path = "sounds/space_jazz.ogg")]
+    pub bg_music: Handle<AudioSource>,
+    #[asset(path = "sounds/pop.ogg")]
+    pub spawn: Handle<AudioSource>,
 }

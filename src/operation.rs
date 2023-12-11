@@ -1,6 +1,6 @@
 use std::iter::repeat_with;
 
-use bevy::{prelude::*, sprite::SpriteBundle, utils::default};
+use bevy::{prelude::*, render::view::RenderLayers, sprite::SpriteBundle, utils::default};
 use rand::{seq::IteratorRandom, Rng};
 use strum::IntoEnumIterator;
 use strum_macros::EnumIter;
@@ -56,6 +56,7 @@ impl Operation {
                             scale: Vec3::new(0.25, 0.25, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.mul.clone(),
@@ -67,6 +68,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.two.clone(),
@@ -78,6 +80,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },
@@ -89,6 +92,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.sub.clone(),
@@ -100,6 +104,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(s2.get_bundle(ma, c_m))
                         .insert(Transform {
@@ -107,6 +112,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                 ]
             },
@@ -118,6 +124,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.add.clone(),
@@ -129,6 +136,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                     cmd.spawn(s2.get_bundle(ma, c_m))
                         .insert(Transform {
@@ -136,6 +144,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                 ]
             },
@@ -170,6 +179,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.add.clone(),
@@ -181,6 +191,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },
@@ -192,6 +203,7 @@ impl Operation {
                             scale: Vec3::new(0.3, 0.3, 1.),
                             ..default()
                         })
+                        .insert(RenderLayers::layer(1))
                         .id(),
                     cmd.spawn(SpriteBundle {
                         texture: textures.sub.clone(),
@@ -203,6 +215,7 @@ impl Operation {
 
                         ..default()
                     })
+                    .insert(RenderLayers::layer(1))
                     .id(),
                 ]
             },

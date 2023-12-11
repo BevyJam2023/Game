@@ -1,6 +1,6 @@
 use std::{f32::consts::PI, iter::repeat};
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 
 use super::{
@@ -44,6 +44,7 @@ pub fn spawn_rules(mut cmd: Commands, mut writer: EventWriter<SpawnCard>) {
                 },
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
     for _ in 0..3 {

@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    loading::{FontAssets, TextureAssets},
+    loading::{FontAssets, SoundAssets, TextureAssets},
     AppState,
 };
 pub const NORMAL_BUTTON_COLOR: Color = Color::rgb(1., 1., 1.);
@@ -27,11 +27,23 @@ impl Plugin for MainMenuPlugin {
             .add_systems(OnExit(AppState::Menu), (despawn_main_menu));
     }
 }
-pub fn spawn_main_menu(mut cmd: Commands, fonts: Res<FontAssets>) {
+pub fn spawn_main_menu(
+    mut cmd: Commands,
+    fonts: Res<FontAssets>,
+    textures: Res<TextureAssets>,
+    sound: Res<SoundAssets>,
+) {
+    cmd.spawn(AudioBundle {
+        source: sound.bg_music.clone(),
+        settings: PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Loop,
+            ..default()
+        },
+    });
     let main_menu = cmd
         .spawn((
             NodeBundle {
-                background_color: Color::GRAY.into(),
+                background_color: Color::rgb(153. / 255., 173. / 255., 211. / 255.).into(),
                 style: Style {
                     width: Val::Percent(100.0),
                     height: Val::Percent(100.0),
@@ -59,27 +71,19 @@ pub fn spawn_main_menu(mut cmd: Commands, fonts: Res<FontAssets>) {
                     text: Text {
                         sections: vec![
                             TextSection::new(
-                                "SH",
+                                "Shape",
                                 TextStyle {
                                     font: fonts.fira.clone(),
-                                    font_size: 32.0,
-                                    color: Color::RED,
+                                    font_size: 100.0,
+                                    color: Color::WHITE,
                                 },
                             ),
                             TextSection::new(
-                                "SH",
+                                "craft",
                                 TextStyle {
                                     font: fonts.fira.clone(),
-                                    font_size: 32.0,
-                                    color: Color::GREEN,
-                                },
-                            ),
-                            TextSection::new(
-                                "SH",
-                                TextStyle {
-                                    font: fonts.fira.clone(),
-                                    font_size: 32.0,
-                                    color: Color::BLUE,
+                                    font_size: 100.0,
+                                    color: Color::WHITE,
                                 },
                             ),
                         ],
@@ -127,40 +131,89 @@ pub fn spawn_main_menu(mut cmd: Commands, fonts: Res<FontAssets>) {
                     });
                 });
 
-            //Instructions Button
-            parent
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            width: Val::Px(200.),
-                            height: Val::Px(80.0),
-                            justify_content: JustifyContent::Center,
-                            align_items: AlignItems::Center,
-                            ..default()
-                        },
+            // //Instructions Button
+            // parent
+            //     .spawn((
+            //         ButtonBundle {
+            //             style: Style {
+            //                 width: Val::Px(200.),
+            //                 height: Val::Px(80.0),
+            //                 justify_content: JustifyContent::Center,
+            //                 align_items: AlignItems::Center,
+            //                 ..default()
+            //             },
+            //
+            //             background_color: BackgroundColor::from(NORMAL_BUTTON_COLOR),
+            //             ..default()
+            //         },
+            //         InstructionButton,
+            //     ))
+            //     .with_children(|parent| {
+            //         parent.spawn(TextBundle {
+            //             text: Text {
+            //                 sections: vec![TextSection::new(
+            //                     "Instructions",
+            //                     TextStyle {
+            //                         font: fonts.fira.clone_weak(),
+            //                         font_size: 32.0,
+            //                         color: Color::BLACK,
+            //                     },
+            //                 )],
+            //                 alignment: TextAlignment::Center,
+            //                 ..default()
+            //             },
+            //             ..default()
+            //         });
+            //     });
+            parent.spawn(ImageBundle {
+                image: textures.card_blue.clone().into(),
 
-                        background_color: BackgroundColor::from(NORMAL_BUTTON_COLOR),
-                        ..default()
-                    },
-                    InstructionButton,
-                ))
-                .with_children(|parent| {
-                    parent.spawn(TextBundle {
-                        text: Text {
-                            sections: vec![TextSection::new(
-                                "Instructions",
-                                TextStyle {
-                                    font: fonts.fira.clone_weak(),
-                                    font_size: 32.0,
-                                    color: Color::BLACK,
-                                },
-                            )],
-                            alignment: TextAlignment::Center,
-                            ..default()
-                        },
-                        ..default()
-                    });
-                });
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(0.),
+                    left: Val::Px(0.),
+                    ..default()
+                },
+                ..default()
+            });
+
+            parent.spawn(ImageBundle {
+                image: textures.card_red.clone().into(),
+
+                style: Style {
+                    position_type: PositionType::Absolute,
+                    top: Val::Px(0.),
+                    right: Val::Px(0.),
+                    ..default()
+                },
+                ..default()
+            });
+
+            parent.spawn(ImageBundle {
+                image: textures.card_blue.clone().into(),
+
+                style: Style {
+                    bottom: Val::Px(0.),
+                    right: Val::Px(0.),
+                    position_type: PositionType::Absolute,
+
+                    ..default()
+                },
+                ..default()
+            });
+
+            parent.spawn(ImageBundle {
+                image: textures.card_red.clone().into(),
+
+                style: Style {
+                    bottom: Val::Px(0.),
+                    left: Val::Px(0.),
+                    position_type: PositionType::Absolute,
+
+                    ..default()
+                },
+                ..default()
+            });
         })
         .id();
 }

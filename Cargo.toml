@@ -1,5 +1,5 @@
 [package]
-name = "sham"
+name = "shapecraft"
 version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
@@ -10,7 +10,7 @@ repository = ""
 [features]
 
 [dependencies]
-bevy = { version = "0.12.1", default-features = false, features = [
+bevy = { version = "0.12.1", default-features = true, features = [
     "bevy_asset",
     "bevy_audio",
     "bevy_core_pipeline",
@@ -21,15 +21,14 @@ bevy = { version = "0.12.1", default-features = false, features = [
     "bevy_ui",
     "bevy_winit",
     "default_font",
-    "dynamic_linking",
     "multi-threaded",
     "png",
     "x11",
-    # "webgl2"
+    "vorbis",
+    "webgl2"
 ]}
 bevy_asset_loader = "0.18.0"
 bevy_tweening = "0.9.0"
-bevy_kira_audio = "0.16.0"
 leafwing-input-manager = "0.11.2"
 lazy_static = "1.4.0"
 maplit = "1.0.2"

@@ -1,6 +1,6 @@
 use std::f32::consts::PI;
 
-use bevy::prelude::*;
+use bevy::{prelude::*, render::view::RenderLayers};
 use bevy_tweening::Lerp;
 use leafwing_input_manager::{
     prelude::{ActionState, InputManagerPlugin, InputMap},
@@ -14,7 +14,7 @@ use super::{
 };
 use crate::{
     board,
-    loading::TextureAssets,
+    loading::{SoundAssets, TextureAssets},
     operation::{generate_random_operations, Operation},
     AppState,
 };
@@ -168,11 +168,20 @@ fn spawn_discard(mut cmd: Commands) {
             transform: board::get_discard_transform(board::config::SIZE.into(), 190. + 50.),
             ..default()
         },
+        RenderLayers::layer(1),
     ));
 }
 
 //spawn deck when deck plugin is made
-fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
+fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>, sound: Res<SoundAssets>) {
+    cmd.spawn(AudioBundle {
+        source: sound.spawn_deck.clone(),
+        settings: PlaybackSettings {
+            mode: bevy::audio::PlaybackMode::Once,
+            ..default()
+        },
+    });
+
     let deck_id = cmd
         .spawn((
             Library,
@@ -182,6 +191,7 @@ fn spawn_deck(mut cmd: Commands, textures: Res<TextureAssets>) {
                 // Image size plus the offset of the stack cards...
                 ..default()
             },
+            RenderLayers::layer(1),
         ))
         .id();
 }
@@ -225,9 +235,18 @@ pub fn draw_card(
     mut reader: EventReader<DrawCard>,
     mut flip_writer: EventWriter<FlipCard>,
     mut shuffle_discard_writer: EventWriter<ShuffleDiscard>,
+    mut sound: Res<SoundAssets>,
 ) {
     for event in reader.read() {
         if let Ok((deck_transform, mut deck, children)) = query.get_single_mut() {
+            cmd.spawn(AudioBundle {
+                source: sound.draw_card.clone(),
+                settings: PlaybackSettings {
+                    mode: bevy::audio::PlaybackMode::Once,
+                    ..default()
+                },
+            });
+
             if children.iter().len() < 5 {
                 shuffle_discard_writer.send(ShuffleDiscard);
             }

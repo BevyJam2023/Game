@@ -75,7 +75,8 @@ pub fn spawn_scoreboard(
     let scoreboard = cmd
         .spawn((
             NodeBundle {
-                background_color: BackgroundColor(Color::rgb(153. / 255., 51. / 255., 0.)),
+                background_color: Color::rgb(153. / 255., 173. / 255., 211. / 255.).into(),
+
                 style: Style {
                     top: Val::Percent(15.0),
                     left: Val::Percent(31.25),
