@@ -28,12 +28,15 @@ impl Operation {
     pub fn random_operation() -> Operation {
         let mut rng = rand::thread_rng();
 
-        let o = rng.gen_range(0..4);
+        let o = rng.gen_range(0..6);
         match o {
             0 => Operation::Mul(Shape::random_shape(), 2),
             1 => Operation::Sub(Shape::random_shape(), Shape::random_shape()),
             2 => Operation::Add(Shape::random_shape(), Shape::random_shape()),
-            _ => Operation::Exp(Shape::random_shape(), 2),
+            3 => Operation::Exp(Shape::random_shape(), 2),
+            4 => Operation::Inc(Shape::random_shape()),
+            5 => Operation::Dec(Shape::random_shape()),
+            _ => Operation::None,
         }
     }
 
@@ -160,8 +163,50 @@ impl Operation {
                 ]
             },
             Operation::None => vec![],
-            Operation::Inc(_) => todo!(),
-            Operation::Dec(_) => todo!(),
+            Operation::Inc(s) => {
+                vec![
+                    cmd.spawn(s.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.add.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.5, 0.5, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                ]
+            },
+            Operation::Dec(s) => {
+                vec![
+                    cmd.spawn(s.get_bundle(ma, c_m))
+                        .insert(Transform {
+                            translation: Vec3::new(0., 0., 1.),
+                            scale: Vec3::new(0.3, 0.3, 1.),
+                            ..default()
+                        })
+                        .id(),
+                    cmd.spawn(SpriteBundle {
+                        texture: textures.sub.clone(),
+                        transform: Transform {
+                            translation: Vec3::new(40., 0., 1.),
+                            scale: Vec3::new(0.5, 0.5, 1.),
+                            ..default()
+                        },
+
+                        ..default()
+                    })
+                    .id(),
+                ]
+            },
         }
     }
 }
