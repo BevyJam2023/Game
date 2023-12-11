@@ -1,5 +1,4 @@
 mod board;
-mod boids;
 mod camera;
 mod cards;
 mod game_shapes;
